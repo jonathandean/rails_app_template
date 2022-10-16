@@ -20,6 +20,9 @@ append_to_file ".gitignore", <<-EOS
 EOS
 
 gem "view_component"
+gem "lograge"
+
+environment 'config.lograge.enabled = true', env: 'production'
 
 after_bundle do
   generate "rspec:install"
