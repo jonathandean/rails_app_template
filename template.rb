@@ -22,6 +22,10 @@ EOS
 gem "view_component"
 gem "lograge"
 
+# JSON performance
+gem 'multi_json'
+gem 'oj'
+
 environment 'config.lograge.enabled = true', env: 'production'
 
 after_bundle do
