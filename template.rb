@@ -7,9 +7,17 @@ if ruby_gemset
 end
 
 gem_group :development, :test do
+  gem "dotenv-rails"
   gem "rspec-rails"
   gem "factory_bot_rails"
 end
+
+append_to_file ".gitignore", <<-EOS
+
+# Local-only environment variables
+.env
+.env.*
+EOS
 
 gem "view_component"
 
