@@ -11,6 +11,8 @@ gem_group :development, :test do
   gem "factory_bot_rails"
 end
 
+gem "view_component"
+
 after_bundle do
   generate "rspec:install"
 
