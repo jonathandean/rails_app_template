@@ -29,6 +29,9 @@ gem "lograge"
 gem 'multi_json'
 gem 'oj'
 
+# Backgroud jobs
+gem 'sidekiq'
+
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
 append_to_file ".gitignore", <<-EOS
 
@@ -37,8 +40,47 @@ append_to_file ".gitignore", <<-EOS
 .env.*
 EOS
 
-# Enable lograte in the staging environment
+prepend_to_file "config/routes.rb", <<-EOS
+require 'sidekiq/web'
+EOS
+
+route <<-EOS
+  namespace :admin do
+    mount Sidekiq::Web => '/jobs', constraints: lambda {|request|
+      # TODO authorize this
+      true
+    }
+  end
+EOS
+
+# Enable lograge in the production environment
 environment 'config.lograge.enabled = true', env: 'production'
+# Use sidekiq for background jobs
+environment 'config.active_job.queue_adapter = :sidekiq'
+
+initializer 'sidekiq.rb', <<-CODE
+Sidekiq.default_worker_options = { 'backtrace' => true }
+
+Sidekiq.configure_server do |config|
+  config.redis = {
+    ssl_params: {
+      # https://stackoverflow.com/questions/65834575/how-to-enable-tls-for-redis-6-on-sidekiq
+      verify_mode: OpenSSL::SSL::VERIFY_NONE,
+      url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379/0')
+    }
+  }
+end
+
+Sidekiq.configure_client do |config|
+  config.redis = {
+    ssl_params: {
+      # https://stackoverflow.com/questions/65834575/how-to-enable-tls-for-redis-6-on-sidekiq
+      verify_mode: OpenSSL::SSL::VERIFY_NONE,
+      url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379/0')
+    }
+  }
+end
+CODE
 
 after_bundle do
   # Setup rspec
