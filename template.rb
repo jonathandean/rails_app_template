@@ -48,6 +48,9 @@ gem 'thor' # used by `bin/cli` and it's commands
 gem 'tty-option' # presenting options in an interactive CLI
 gem 'tty-progressbar'
 
+# Static security analysis
+gem 'brakeman'
+
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
 append_to_file ".gitignore", <<-EOS
 
