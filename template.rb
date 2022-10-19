@@ -40,12 +40,67 @@ gem 'dry-validation'
 # Compare hashes and arrays
 gem 'hashdiff'
 
+# CLI
+gem 'pastel' # styling strings for printing in the terminal
+gem 'thor' # used by `bin/cli` and it's commands
+gem 'tty-option' # presenting options in an interactive CLI
+gem 'tty-progressbar'
+
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
 append_to_file ".gitignore", <<-EOS
 
 # Local-only environment variables
 .env
 .env.*
+EOS
+
+create_file "app/cli/example_subcommand.rb", <<-'EOS'
+class ExampleSubcommand < Thor
+  desc "example", "Show an example command"
+  long_desc <<~LONGDESC
+    Show an example command
+        
+    Pass --verbose to print detailed information as the command runs.
+  LONGDESC
+  option :verbose, type: :boolean, default: false
+  def example
+    verbose = options[:verbose]
+    puts "Hello, world!#{verbose ? ' Verbose version.': ''}"
+  end
+end
+EOS
+
+create_file "bin/cli", <<-'EOS'
+#!/usr/bin/env ruby
+
+ENV["RAILS_ENV"] ||= "development"
+
+APP_PATH = File.expand_path("../config/application", __dir__)
+require_relative "../config/boot"
+require_relative "../config/environment"
+
+require "thor"
+
+module App
+  class Cli < Thor
+    desc "environment", "Print details about the current environment"
+    def environment
+      puts "Hostname: #{Socket.gethostname}"
+      puts "RAILS_ENV=#{ENV["RAILS_ENV"]}"
+      puts "RUBYOPT=#{ENV["RUBYOPT"]}"
+      puts "PWD=#{ENV["PWD"]}"
+    end
+
+    desc "example SUBCOMMAND", "Example commands"
+    subcommand "example", ExampleSubcommand
+
+    def self.exit_on_failure?
+      true
+    end
+  end
+end
+
+App::Cli.start(ARGV)
 EOS
 
 prepend_to_file "config/routes.rb", <<-EOS
