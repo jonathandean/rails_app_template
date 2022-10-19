@@ -6,22 +6,6 @@ if ruby_gemset
   run "echo \"#{ruby_gemset}\" > .ruby-gemset"
 end
 
-gem_group :development do
-  # Auto-annotate files with schema and other info
-  gem "annotate"
-end
-
-gem_group :development, :test do
-  # Ease of setting environment variables locally
-  gem "dotenv-rails"
-  # rspec for unit tests
-  gem "rspec-rails"
-  # Factories over fixtures for tests
-  gem "factory_bot_rails"
-  # Patch-level verification for bundler
-  gem 'bundler-audit'
-end
-
 # View components for portions of views with more complex logic
 gem "view_component"
 # Reduce Request logging to a single line in production
@@ -50,6 +34,24 @@ gem 'tty-progressbar'
 
 # Static security analysis
 gem 'brakeman'
+
+gem_group :development do
+  # Auto-annotate files with schema and other info
+  gem "annotate"
+  # Easily preview ViewComponents
+  gem "lookbook"
+end
+
+gem_group :development, :test do
+  # Ease of setting environment variables locally
+  gem "dotenv-rails"
+  # rspec for unit tests
+  gem "rspec-rails"
+  # Factories over fixtures for tests
+  gem "factory_bot_rails"
+  # Patch-level verification for bundler
+  gem 'bundler-audit'
+end
 
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
 append_to_file ".gitignore", <<-EOS
@@ -186,10 +188,35 @@ route <<-EOS
       true
     }
   end
+  if Rails.env.development?
+    mount Lookbook::Engine, at: "/lookbook"
+  end
 EOS
 
+# ViewComponents
 create_file "app/components/.keep", ''
+# ViewComponent previews for lookbook
+create_file "spec/components/previews/.keep", ''
+# A place for plain old Ruby objects
 create_file "app/services/.keep", ''
+
+# A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
+create_file "app/views/layouts/view_component_preview.html.erb", <<-'EOS'
+<!DOCTYPE html>
+<html class="h-full bg-gray-100" style="<%= params[:lookbook][:display][:bg_color].present? ? "background-color:#{params[:lookbook][:display][:bg_color]}" : '' %>">
+  <head>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <%= stylesheet_link_tag "inter-font" %>
+    <%= stylesheet_link_tag "tailwind" %>
+  </head>
+  <body>
+    <div class="p-12">
+      <%= yield %>
+    </div>
+  </body>
+</html>
+EOS
 
 environment <<-'EOS'
     config.autoload_paths += %W(
@@ -245,6 +272,12 @@ after_bundle do
   # Enable route and model annotation
   gsub_file "lib/tasks/auto_annotate_models.rake", /'models'(\s*)=>(\s*)'false'/, "'models'                      => 'true'"
   gsub_file "lib/tasks/auto_annotate_models.rake", /'routes'(\s*)=>(\s*)'false'/, "'routes'                      => 'true'"
+
+  gsub_file "config/tailwind.config.js", /'\.\/app\/javascript\/\*\*\/\*\.js',/, <<-EOS
+    './app/javascript/**/*.{js,ts}',
+    './app/components/**/*.{rb,erb,haml,html,slim}',
+    './spec/components/previews/**/*.{rb,html.erb}',
+  EOS
 
   git :init
   git add: '.'
