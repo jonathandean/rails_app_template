@@ -188,6 +188,17 @@ route <<-EOS
   end
 EOS
 
+create_file "app/components/.keep", ''
+create_file "app/services/.keep", ''
+
+environment <<-'EOS'
+    config.autoload_paths += %W(
+      #{config.root}/app/components
+      #{config.root}/app/services
+      #{config.root}/lib
+    )
+EOS
+
 # Enable lograge in the production environment
 environment 'config.lograge.enabled = true', env: 'production'
 # Use sidekiq for background jobs
