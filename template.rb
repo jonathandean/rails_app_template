@@ -230,6 +230,13 @@ Sidekiq.configure_client do |config|
 end
 CODE
 
+# Easily use Dry::Types in Dry::Structs
+initializer 'types.rb', <<-CODE
+module Types
+  include Dry.Types()
+end
+CODE
+
 after_bundle do
   # Setup rspec
   generate "rspec:install"
