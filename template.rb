@@ -18,6 +18,8 @@ gem_group :development, :test do
   gem "rspec-rails"
   # Factories over fixtures for tests
   gem "factory_bot_rails"
+  # Patch-level verification for bundler
+  gem 'bundler-audit'
 end
 
 # View components for portions of views with more complex logic
