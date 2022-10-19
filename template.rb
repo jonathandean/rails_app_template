@@ -37,6 +37,9 @@ gem 'dry-configurable'
 gem 'dry-struct'
 gem 'dry-validation'
 
+# Compare hashes and arrays
+gem 'hashdiff'
+
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
 append_to_file ".gitignore", <<-EOS
 
