@@ -203,6 +203,8 @@ EOS
 environment 'config.lograge.enabled = true', env: 'production'
 # Use sidekiq for background jobs
 environment 'config.active_job.queue_adapter = :sidekiq'
+# Use the sql schema for advanced postgres support
+environment 'config.active_record.schema_format = :sql'
 
 initializer 'sidekiq.rb', <<-CODE
 Sidekiq.default_worker_options = { 'backtrace' => true }
