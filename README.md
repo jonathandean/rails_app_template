@@ -183,11 +183,99 @@ See [hotwired.dev](https://hotwired.dev/)
 
 ### TailwindCSS
 
+[tailwindcss](https://tailwindcss.com/) is a popular and robust CSS library that allows for rapid and modern styling
+directly in your browser. Your app ships with only the CSS you use and nothing more.
+
+**This template adds some configuration to make sure the tailwindcss builder is looking for the classes you are using
+in all of the right places.**
+
+My greatest dev hack ever may have been to buy a license to the companion [Tailwind UI](https://tailwindui.com/) examples.
+There are dozens of modern and responsive components and full page examples that even the least creative of us can use to
+make a gorgeous app very quickly.
+
 ### ViewComponents + Lookbook
+
+OK so by now you might be fearing a bunch of unstructured and difficult to test ERB templates and that is a fair concern.
+
+[ViewComponent](https://viewcomponent.org/) provided in this template help you to create easy to test and reuse components.
+Similar in principle to the component-based structure of React but rendered from the server using Ruby and ERB.
+
+Examples are plentiful on the [ViewComponent](https://viewcomponent.org/) so I'll skip detailed ones here, but this template
+ensures:
+1. The Ruby files are auto-loaded from `app/components/`
+2. Tailwind is configured to bundle all of the classes you use in your ViewComponents
+
+```ruby
+# app/components/button_component.rb
+class ButtonComponent < ViewComponent::Base
+   attr_reader :bg_class, :text_color_class
+   def initialize(kind: nil)
+      case kind
+      when :primary
+         @bg_class = "bg-blue-600"
+         @text_color_class = "text-white"
+      else
+         @bg_class = "bg-gray-200"
+         @text_color_class = "text-gray-700"
+      end
+   end
+end
+```
+```erb
+<!-- app/components/button_component.html.erb -->
+<button type="button" class="inline-block px-6 py-2.5 <%= bg_class %> <%= text_color_class %> font-medium text-xs leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out">
+  <%= content %>
+</button>
+```
+```erb
+<!-- app/views/example/index.html.erb -->
+<%= render ButtonComponent.new(kind: :primary) do %>
+  Button Text
+<% end %>
+```
+
+Test coverage is great for components but they are visual in nature and unit tests aren't a good way to explore what 
+these components look like or help develop them. This template includes the [lookbook](https://lookbook.build/) gem
+and also sets it up for auto-loading and bundling any included Tailwind CSS files. 
+
+With [lookbook](https://lookbook.build/) you can create pretty simple previews of said components for rapid development
+and a central UI library to see components already available in your app.
+
+This template also includes a layout to use in our previews to include tailwind and a light gray background for them to stand out against.
+
+```ruby
+# spec/components/previews/button_component_preview.rb
+class ButtonComponentPreview < ViewComponent::Preview
+   # Provided by this template
+   layout "view_component_preview"
+
+   # @!group
+   def default
+      render ButtonComponent.new do
+         "Button"
+      end
+   end
+
+   def primary
+      render ButtonComponent.new(kind: :primary) do
+         "Button"
+      end
+   end
+   # @!endgroup
+end
+```
 
 ## Testing
 
 ## Command line
+
+# Other suggestions
+
+A few things that don't require any configuration in your app (so aren't in this template) but that I've found useful.
+
+## Heroicons
+
+## Overmind
 
 # Troubleshooting
 
