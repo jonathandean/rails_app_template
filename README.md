@@ -267,7 +267,72 @@ end
 
 ## Testing
 
+I prefer and am more familiar with [rspec](https://rspec.info/) so that is what is used and configured here.
+
+It also includes [factory_bot](https://github.com/thoughtbot/factory_bot_rails) to use simple factory definitions over fixtures.
+
+If you prefer to use [standard Rails tests](https://guides.rubyonrails.org/testing.html) do not include the `--skip-test`
+flag during app generation and update `bin/ci` accordingly to run those instead of `rspec`. It shouldn't hurt anything to have
+`rspec` configured but scanning `template.rb` could give you some clues on how to remove it to reduce the app bundle size.
+
 ## Command line
+
+You may sometimes need to write some task to be executed by the command line. Rather than using `rake`, I much prefer 
+to use [thor](http://whatisthor.com/) for powerful options parsing quick documentation.
+
+Included is a `bin/ci` runner to make it super easy to create your app's command line interface. Just add subcommands in
+`templates/cli/name_of_your_subcommand.rb` following the example below, which for convenience is also added by the template 
+for you to edit/replace/always have on hand as an example:
+
+```ruby
+# app/cli/example_subcommand.rb
+class ExampleSubcommand < Thor
+   desc "example", "Show an example command"
+   long_desc <<~LONGDESC
+    Show an example command
+        
+    Pass --verbose to print detailed information as the command runs.
+   LONGDESC
+   option :verbose, type: :boolean, default: false
+   def example
+      verbose = options[:verbose]
+      puts "Hello, world!#{verbose ? ' Verbose version.': ''}"
+   end
+end
+```
+
+```ruby
+# bin/cli
+
+# Add the following above the `def self.exit_on_failure?` definition:
+
+desc "example SUBCOMMAND", "Example commands"
+subcommand "example", ExampleSubcommand
+```
+
+Now you can run the nicely documented example command with various options from your app's root directory:
+
+```
+# help on available command options
+bin/cli example --help
+
+
+# Run with default options
+
+bin/cli example
+# => "Hello, world!"
+
+
+# Run with specified options:
+
+bin/cli example --verbose
+# => "Hello, world! Verbose version."
+
+bin/cli example --no-verbose
+# => "Hello, world!"
+
+# etc..
+```
 
 # Other suggestions
 
