@@ -2,6 +2,22 @@
 
 My preferred starting point for new Rails 7 apps.
 
+Quick Summary:
+- PostgreSQL database
+- rspec for tests
+- TailwindCSS
+- ViewComponents + Lookbook
+- Turbo + Stimulus
+- importmap (instead of webpacker)
+- dotenv for local environment variable configuration
+- Setup for your service layer of plain Ruby objects in `app/services/`
+- Sidekiq for background jobs
+- Dry::Struct with types for immutable and validated Structs
+- `bin/cli` runner for ease of adding a Thor-based CLI instead of rake
+- `bin/ci` runner for running tests with some options (great locally and for a CI server)
+
+I encourage you to read below for options and explanations of each choice.
+
 # Usage
 
 ## New apps
