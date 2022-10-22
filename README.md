@@ -119,13 +119,10 @@ external_user = ExternalUser.new(email: "jon@example.com", name: "Jon")
 puts external_user
 # output:
 # jon@example.com (Jon)
-
 external_user = ExternalUser.new(email: "jon@example.com")
 puts external_user
 # output:
 # jon@example.com (no name given)
-
-
 external_user = ExternalUser.new(name: "Jon")
 # exception:
 # (Dry::Types::MissingKeyError)
