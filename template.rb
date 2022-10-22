@@ -57,6 +57,9 @@ gem_group :development, :test do
   gem 'bundler-audit'
 end
 
+# Use a version of `config/database.yml` with ENV var support built in for anyone who wants to override defaults locally
+template "templates/database.yml.erb", "config/database.yml"
+
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
 append_to_file ".gitignore", <<-EOS
 

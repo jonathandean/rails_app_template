@@ -6,16 +6,52 @@ My preferred starting point for new Rails 7 apps.
 
 ## New apps
 
-### Install Ruby
+### 1. Install Ruby
 First, install the latest version of Ruby. At the moment that is 3.1.2. I recommend using RVM, rbenv, or similar and not using your system Ruby.
 
-### Ensure you have the latest version of bundler
+### 2. Ensure you have the latest version of bundler
 
 See instructions at [bundler.io](https://bundler.io)
 
-If you get the error `uninitialized constant Gem::Source (NameError)` see the troubleshooting section at the end of the README
+If you get the error `uninitialized constant Gem::Source (NameError)` see the troubleshooting section at the end of the README.
+This is your indication that you are not currently using the latest version.
 
-### Run the new app generator
+### 3. Install PostgreSQL
+
+You can do this however you'd like. Using [homebrew](https://brew.sh/) is very popular, but I prefer [Postgres.app](https://postgresapp.com/)
+on my Mac as described below.
+
+Regardless of your installation choice, it's best to get it ready before using this template
+so that it can automatically set up your databases for you.
+
+If you do elect to use [Postgres.app](https://postgresapp.com/) to make it easier to manage multiple versions
+and have a simple GUI interface to start/stop the server(s). The catch is you need to tell bundler where to find the libraries
+it needs to install native extensions for the `pg` gem:
+
+1. Install the app from [Postgres.app](https://postgresapp.com/)
+2. Create a new server if there isn't already one listed for Postgres 14 (if using 15 or above just update the version number in all steps)
+3. Click the button to initialize the database
+4. Click the button to start the server
+5. Add the following two lines to your `~/.zshrc` or `~/.bash_profile`
+   ```
+   export PATH="$PATH:/Applications/Postgres.app/Contents/Versions/14/bin"
+   export CONFIGURE_ARGS="with-pg-include=/Applications/Postgres.app/Contents/Versions/14/include"
+   ```
+6. Close and reopen your terminal or otherwise reload the shell profile
+7. Now you can run the generator with this template and `bundle install` later
+
+### 4. Install Redis
+We'll use this for background jobs using [Sidekiq](https://sidekiq.org/) and [Turbo Streams](https://turbo.hotwired.dev/handbook/streams)
+
+Using [homebrew](https://brew.sh/)
+```
+brew install redis
+```
+```
+brew services start redis
+```
+
+### 5. Run the new app generator with these values and this template
 ```
 gem install rails
 rails new your_new_app_name --database=postgresql --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb
@@ -39,7 +75,10 @@ bin/rails app:template LOCATION=path/to/this/template.rb
 ### --database=postgresql 
 
 You can use another database than postgres with template if you'd like. 
-I prefer it for many reasons but one in particular is it's performance with json data types using jsonb columns
+I prefer it for many reasons but one in particular is it's performance with json data types using jsonb columns.
+
+If you select another database you will need to answer `n` for no when asked to overwrite `config/database.yml`, 
+as this template creates a slightly modified version of that file specific to postgres.
 
 ### --skip-jbuilder 
 
@@ -349,6 +388,25 @@ bin/cli example --no-verbose
 
 # etc..
 ```
+
+# Extra configurations
+
+Your `config/database.yml` was updated to be pre-configured for ENV var use (unless you said no when asked to overwrite the Rails-provided one.)
+
+The variables and defaults are below:
+```
+RAILS_MAX_THREADS=5
+DATABASE_PORT=5432
+DATABASE_NAME_DEVELOPMENT=[your_app_name_here]_development
+DATABASE_NAME_TEST=[your_app_name_here]_test
+DATABASE_NAME_PRODUCTION=[your_app_name_here]_production
+DATABASE_USERNAME=[your_app_name_here]
+DATABASE_PASSWORD=[your_app_name_here]
+```
+
+To adjust these values you can add them to a file named `.env` and reboot your dev server.
+
+Note: if you use something like Heroku this configuration may be ignored in production in favor of a `DATABASE_URL` env var.
 
 # Other suggestions
 
