@@ -1,4 +1,8 @@
 
+def source_paths
+  [__dir__]
+end
+
 ruby_version = ask("Which ruby version are you using? This will add it to the .ruby-version file:")
 run "echo \"#{ruby_version}\" > .ruby-version"
 ruby_gemset = ask("Enter a gemset name for .ruby-gemset or just hit enter to skip creation of this file:")
@@ -61,121 +65,15 @@ append_to_file ".gitignore", <<-EOS
 .env.*
 EOS
 
-create_file "app/cli/example_subcommand.rb", <<-'EOS'
-class ExampleSubcommand < Thor
-  desc "example", "Show an example command"
-  long_desc <<~LONGDESC
-    Show an example command
-        
-    Pass --verbose to print detailed information as the command runs.
-  LONGDESC
-  option :verbose, type: :boolean, default: false
-  def example
-    verbose = options[:verbose]
-    puts "Hello, world!#{verbose ? ' Verbose version.': ''}"
-  end
-end
-EOS
+# Create a command line interface runner for thor so you can run it as `bin/cli subcommand`
+copy_file "templates/cli/cli.rb", "bin/cli"
+copy_file "templates/cli/example_subcommand.rb", "app/cli/example_subcommand.rb"
 
-create_file "bin/cli", <<-'EOS'
-#!/usr/bin/env ruby
+# Create a runner for your tests by running `bin/ci` (ci standing for continuous integration)
+copy_file "templates/ci.rb", "bin/ci"
 
-ENV["RAILS_ENV"] ||= "development"
-
-APP_PATH = File.expand_path("../config/application", __dir__)
-require_relative "../config/boot"
-require_relative "../config/environment"
-
-require "thor"
-
-module App
-  class Cli < Thor
-    desc "environment", "Print details about the current environment"
-    def environment
-      puts "Hostname: #{Socket.gethostname}"
-      puts "RAILS_ENV=#{ENV["RAILS_ENV"]}"
-      puts "RUBYOPT=#{ENV["RUBYOPT"]}"
-      puts "PWD=#{ENV["PWD"]}"
-    end
-
-    desc "example SUBCOMMAND", "Example commands"
-    subcommand "example", ExampleSubcommand
-
-    def self.exit_on_failure?
-      true
-    end
-  end
-end
-
-App::Cli.start(ARGV)
-EOS
-
-create_file "bin/ci", <<-'EOS'
-#!/usr/bin/env ruby
-
-# Usage: bin/ci [options]
-#
-# --no-[STEP]  Exclude the specified step
-# --only STEP  Run only the specified step
-#
-# Examples:
-#
-#   bin/ci --no-brakeman
-#   bin/ci --only rspec
-
-require "open3"
-require "optparse"
-
-# Define steps.
-# NOTE: The order here determines the order they are performed.
-STEPS = {
-  "bundle-audit" => "bundle audit check --update",
-  "brakeman" => "bundle exec brakeman",
-  "rspec" => "bundle exec rspec"
-}
-
-def perform_step(name, cmd)
-  Open3.popen3(cmd) do |stdin, stdout, stderr, thread|
-    { STDOUT => stdout, STDERR => stderr }.each do |output, input|
-      Thread.new do
-        last_char = nil
-        while char = input.getc do
-          if last_char.nil? || last_char == "\n"
-            output.print "[#{name}] "
-          end
-          output.print char
-          last_char = char
-        end
-      end
-    end
-
-    thread.join
-
-    status = thread.value
-    unless status.success?
-      exit status.exitstatus
-    end
-  end
-end
-
-options = { steps: STEPS.keys }
-
-OptionParser.new do |parser|
-  parser.on("--only=ONLY") do |only|
-    options[:steps] = only.split(",")
-  end
-
-  STEPS.keys.each do |step|
-    parser.on("--no-#{step}") do
-      options[:steps].delete(step)
-    end
-  end
-end.parse!
-
-options[:steps].each do |step|
-  perform_step step, STEPS[step]
-end
-EOS
+# Configure sidekiq and sidekiq web UI
+copy_file 'sidekiq.rb', "config/initializers/sidekiq.rb"
 
 prepend_to_file "config/routes.rb", <<-EOS
 require 'sidekiq/web'
@@ -201,22 +99,7 @@ create_file "spec/components/previews/.keep", ''
 create_file "app/services/.keep", ''
 
 # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
-create_file "app/views/layouts/view_component_preview.html.erb", <<-'EOS'
-<!DOCTYPE html>
-<html class="h-full bg-gray-100" style="<%= params[:lookbook][:display][:bg_color].present? ? "background-color:#{params[:lookbook][:display][:bg_color]}" : '' %>">
-  <head>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-
-    <%= stylesheet_link_tag "inter-font" %>
-    <%= stylesheet_link_tag "tailwind" %>
-  </head>
-  <body>
-    <div class="p-12">
-      <%= yield %>
-    </div>
-  </body>
-</html>
-EOS
+copy_file "templates/view_component_preview.html.erb", "app/views/layouts/view_component_preview.html.erb"
 
 environment <<-'EOS'
     config.autoload_paths += %W(
@@ -232,30 +115,6 @@ environment 'config.lograge.enabled = true', env: 'production'
 environment 'config.active_job.queue_adapter = :sidekiq'
 # Use the sql schema for advanced postgres support
 environment 'config.active_record.schema_format = :sql'
-
-initializer 'sidekiq.rb', <<-CODE
-Sidekiq.default_worker_options = { 'backtrace' => true }
-
-Sidekiq.configure_server do |config|
-  config.redis = {
-    ssl_params: {
-      # https://stackoverflow.com/questions/65834575/how-to-enable-tls-for-redis-6-on-sidekiq
-      verify_mode: OpenSSL::SSL::VERIFY_NONE,
-      url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379/0')
-    }
-  }
-end
-
-Sidekiq.configure_client do |config|
-  config.redis = {
-    ssl_params: {
-      # https://stackoverflow.com/questions/65834575/how-to-enable-tls-for-redis-6-on-sidekiq
-      verify_mode: OpenSSL::SSL::VERIFY_NONE,
-      url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379/0')
-    }
-  }
-end
-CODE
 
 # Easily use Dry::Types in Dry::Structs
 initializer 'types.rb', <<-CODE
@@ -280,6 +139,9 @@ after_bundle do
   EOS
 
   git :init
-  git add: '.'
-  git commit: "-a -m 'Initial commit'"
+
+  if yes?("Should we commit your empty app to git?")
+    git add: '.'
+    git commit: "-a -m 'Initial commit'"
+  end
 end

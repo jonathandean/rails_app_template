@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class="h-full bg-gray-100" style="<%= params[:lookbook][:display][:bg_color].present? ? "background-color:#{params[:lookbook][:display][:bg_color]}" : '' %>">
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <%= stylesheet_link_tag "inter-font" %>
+  <%= stylesheet_link_tag "tailwind" %>
+</head>
+<body>
+<div class="p-12">
+  <%= yield %>
+</div>
+</body>
+</html>
