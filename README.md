@@ -15,6 +15,8 @@ Quick Summary:
 - Dry::Struct with types for immutable and validated Structs
 - `bin/cli` runner for ease of adding a Thor-based CLI instead of rake
 - `bin/ci` runner for running tests with some options (great locally and for a CI server)
+- brakeman for static code analysis to help detect potential security issues
+- bundler-audit to ensure you keep your dependencies up to date
 
 I encourage you to read below for options and explanations of each choice.
 
@@ -346,12 +348,33 @@ If you prefer to use [standard Rails tests](https://guides.rubyonrails.org/testi
 flag during app generation and update `bin/ci` accordingly to run those instead of `rspec`. It shouldn't hurt anything to have
 `rspec` configured but scanning `template.rb` could give you some clues on how to remove it to reduce the app bundle size.
 
+### CI runner
+
+To make it easier to run tests locally and on a CI server you can simply go to the command line and run:
+
+```
+bin/ci
+```
+
+This will run rspec tests, brakeman, and audit your gems for security updates. Use can use the following to adjust what runs:
+
+```
+bin/ci --only brakeman
+bin/ci --only bundle-audit
+bin/ci --only rspec
+bin/ci --no-brakeman
+bin/ci --no-bundle-audit
+bin/ci --no-rspec
+```
+
+To define a new step in the CI flow edit the `STEPS` in `bin/ci`
+
 ## Command line
 
 You may sometimes need to write some task to be executed by the command line. Rather than using `rake`, I much prefer 
 to use [thor](http://whatisthor.com/) for powerful options parsing quick documentation.
 
-Included is a `bin/ci` runner to make it super easy to create your app's command line interface. Just add subcommands in
+Included is a `bin/cli` runner to make it super easy to create your app's command line interface. Just add subcommands in
 `templates/cli/name_of_your_subcommand.rb` following the example below, which for convenience is also added by the template 
 for you to edit/replace/always have on hand as an example:
 
