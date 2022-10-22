@@ -70,6 +70,13 @@ These are asked interactively as you apply the template:
 
 # Choices and reasoning
 
+## Environment variables
+
+Use of [dotenv](https://github.com/bkeepers/dotenv) lets you more easily configure local environment variables in
+`.env` or `.env.development`/`.env.test` files. These are excluded from git by the template.
+
+Note: if you add or change these you must restart your dev server.
+
 ## Structuring server-side code
 
 ### Services/plain old Ruby objects
