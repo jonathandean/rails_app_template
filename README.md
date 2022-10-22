@@ -136,7 +136,50 @@ external_user = ExternalUser.new(name: 123.0)
 
 ## UI
 
+### No React or other single page app JS frameworks
+
+I no longer use or recommend using JavaScript frameworks (like React) to build your entire view layer. For most apps and teams
+you'll be more efficient to render most of your view layer server-side and add interactivity from there for a few reasons:
+
+1. The JavasScript dependency ecosystem is a mess and very difficult to keep up to date and secure. This article is more 
+relevant than ever 3 years later: https://naildrivin5.com/blog/2019/07/10/the-frightening-state-security-around-npm-package-management.html .
+I want as few JavaScript dependencies as possible.
+2. You write all of your view layer twice - the second view layer is the API. This might be fine for very large teams that
+require and take advantage of specialized skill roles but I doubt any of those are looking to use app templates :)
+You need to write both layers, test them in different tools, coordinate their expectations. ERB works just fine to write it once!
+3. Too many choices. Frameworks like React require you to make a lot of choices: router? redux? some fancy add on to redux
+like thunks or whatever is hot these days? on and on an on... this is just time, mental energy, and maintenance you could
+be spending instead on writing actual features in your app.
+4. It's hard to stay performant. I'm not saying you can't keep a single page app running well and using few system resources
+but again you have to be super intentional about this and configure all sorts of lazy-loading/split packaging/whatever other
+nonsense that does not make your app special or unique in any way. Don't waste time on configuration.
+
+### importmaps
+
+Now default in Rails, you can use JavaScript models directly from the browser without transpiling or bundling.
+That means no more webpacker configuration pain. Your (hopefully few) JavaScript library dependencies will load in many
+smaller files in the browser, which is much more performant on the more modern HTTP/2, and no need for extra JS tooling
+or building steps.
+
+[Detailed information on the importmap-rails repo](https://github.com/rails/importmap-rails)
+
 ### Turbo + Stimulus
+
+"But I want my app to be modern!" 
+
+Great! You can use [Turbo](https://turbo.hotwired.dev/) in Rails to do almost any thing you'd like without actually needing
+to write any JavaScript. It'll submit forms for you using AJAX, stream updates from the server and put them right in your page
+and more. Just build the app as if it were submitting everything to the server as a full page reload and then sprinkle in
+some specially named elements and attributes and it's now a fully interactive single page app!
+
+OK so sometimes you need a little extra JavaScript to expand that drop-down menu and select all of the checkboxes on a form.
+[Stimulus](https://stimulus.hotwired.dev/) has your back with just a few lines of code and promotes nicely de-coupled 
+organization of your JavaScript code.
+
+I also recommend a quick look at [tailwindcss-stimulus-components](https://github.com/excid3/tailwindcss-stimulus-components)
+For a handful of small, dependency free, and common JS components. (Modals, Tabs, Toggles, Dropdowns, etc.)
+
+See [hotwired.dev](https://hotwired.dev/)
 
 ### TailwindCSS
 
