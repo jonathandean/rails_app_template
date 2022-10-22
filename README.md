@@ -340,7 +340,21 @@ A few things that don't require any configuration in your app (so aren't in this
 
 ## Heroicons
 
-## Overmind
+No great UI is complete without some beautiful icons. I love to use [heroicons](https://heroicons.com/) for UI elements
+and [Simple Icons](https://simpleicons.org/) when I needed to use a brand/logo.
+
+## overmind
+
+You'll need two processes to boot the app for development that are defined in `Procfile.dev`. You can use the popular 
+[Forman](https://github.com/ddollar/foreman) gem for this but my preference is to use the more powerful
+[overmind](https://github.com/DarthSim/overmind). 
+
+On a Mac:
+```
+brew install overmind
+cd your_new_app_name/
+overmind start -f Procfile.dev
+```
 
 # Troubleshooting
 
