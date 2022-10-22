@@ -144,4 +144,7 @@ after_bundle do
     git add: '.'
     git commit: "-a -m 'Initial commit'"
   end
+
+  puts ""
+  puts "WARNING: add authorization checks to `config/routes.rb` for the sidekiq web UI at /jobs or remove it from the production environment."
 end

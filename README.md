@@ -77,6 +77,15 @@ Use of [dotenv](https://github.com/bkeepers/dotenv) lets you more easily configu
 
 Note: if you add or change these you must restart your dev server.
 
+## Background jobs
+
+Background jobs are configured for [Sidekiq](https://sidekiq.org/) running on Redis. The 
+[ActiveJob](https://edgeguides.rubyonrails.org/active_job_basics.html) interface is used.
+
+**WARNING**: add authorization checks to `config/routes.rb` for the sidekiq web UI at /jobs or remove it from the 
+production environment. This isn't configured securely by the template to start because we have no knowledge of your auth
+setup, if any.
+
 ## Structuring server-side code
 
 ### Services/plain old Ruby objects
