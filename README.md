@@ -362,7 +362,7 @@ and [Simple Icons](https://simpleicons.org/) when I needed to use a brand/logo.
 ## overmind
 
 You'll need two processes to boot the app for development that are defined in `Procfile.dev`. You can use the popular 
-[Forman](https://github.com/ddollar/foreman) gem for this but my preference is to use the more powerful
+[Foreman](https://github.com/ddollar/foreman) gem for this but my preference is to use the more powerful
 [overmind](https://github.com/DarthSim/overmind). 
 
 On a Mac:
