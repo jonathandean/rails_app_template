@@ -416,26 +416,27 @@ subcommand "example", ExampleSubcommand
 
 Now you can run the nicely documented example command with various options from your app's root directory:
 
+Help on available command options:
 ```
-# help on available command options
-bin/cli example --help
-
-
-# Run with default options
-
-bin/cli example
-# => "Hello, world!"
-
-
-# Run with specified options:
-
-bin/cli example --verbose
-# => "Hello, world! Verbose version."
-
-bin/cli example --no-verbose
-# => "Hello, world!"
-
-# etc..
+> bin/cli example --help
+Commands:
+  cli example hello           # Show an example command
+  cli example help [COMMAND]  # Describe subcommands or one specific subcommand
+```
+Run with default options:
+```
+> bin/cli example hello
+Hello, world!
+```
+Run with specified options:
+```
+> bin/cli example hello --verbose
+Hello, world! Verbose version
+```
+Run with specified options (negative version):
+```
+> bin/cli example hello --no-verbose
+Hello, world!
 ```
 
 # Extra configurations
