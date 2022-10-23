@@ -539,7 +539,6 @@ For existing apps and other setups find instructions at [bundler.io](https://bun
 
 # TODO
 - [ ] Capybara specs
-
-# TODO scan template.rb for comments suggesting other features
-# TODO optional auth
-# TODO bugsnag
+- [ ] scan template.rb for comments suggesting other features
+- [ ] optional auth
+- [ ] bugsnag
