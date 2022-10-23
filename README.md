@@ -369,6 +369,12 @@ bin/ci --no-rspec
 
 To define a new step in the CI flow edit the `STEPS` in `bin/ci`
 
+#### Security features
+
+Using the ci runner will ensure:
+- Tests fail if you have a security issue with a gem version in your app, via [bundler-audit](https://github.com/rubysec/bundler-audit)
+- Tests fail if you have a potentially security flaw in your app based on static analysis, via [Brakeman](https://brakemanscanner.org/)
+
 ## Command line
 
 You may sometimes need to write some task to be executed by the command line. Rather than using `rake`, I much prefer 
