@@ -153,4 +153,16 @@ after_bundle do
 
   puts ""
   puts "WARNING: add authorization checks to `config/routes.rb` for the sidekiq web UI at /jobs or remove it from the production environment."
+  puts ""
+  puts "Next steps:"
+  puts "cd #{app_name}"
+  puts "createuser #{app_name} -s -d -P -r -h localhost -p 5432"
+  puts "  (if your database host or port is different you will need to adjust the above)"
+  puts "  (if you are using Postgres.app you may need a fully qualified path if you've not added the bin dir to your path, "
+  puts"     such as: `/Applications/Postgres.app/Contents/Versions/14/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
+  puts "bin/rake db:create"
+  puts "bin/rake db:migrate"
+  puts "overmind start -f Procfile.dev"
+  puts "  (`brew install overmind` if you don't have it yet)"
+  puts "  (or if you prefer the foreman gem: `bundle add foreman && bundle exec foreman start -f Procfile.dev`"
 end
