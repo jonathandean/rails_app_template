@@ -338,6 +338,10 @@ class ButtonComponentPreview < ViewComponent::Preview
 end
 ```
 
+Now if you visit http://localhost:3000/lookbook you will a preview of your component in two styles:
+
+![Lookbook Screenshot](screenshots/lookbook_example.png)
+
 ## Testing
 
 I prefer and am more familiar with [rspec](https://rspec.info/) so that is what is used and configured here.
