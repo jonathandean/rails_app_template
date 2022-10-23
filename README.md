@@ -528,6 +528,31 @@ end
 
 You won't need to add any special params to your models when using `belongs_to` there.
 
+## Production database logs
+
+[lograge](https://github.com/roidrage/lograge) is used to ensure production request logs are searchable in a single line 
+format. This greatly helps searching and visibility of logs in an app with a lot of activity.
+
+It takes something like:
+
+```
+Started GET "/" for 127.0.0.1 at 2012-03-10 14:28:14 +0100
+Processing by HomeController#index as HTML
+  Rendered text template within layouts/application (0.0ms)
+  Rendered layouts/_assets.html.erb (2.0ms)
+  Rendered layouts/_top.html.erb (2.6ms)
+  Rendered layouts/_about.html.erb (0.3ms)
+  Rendered layouts/_google_analytics.html.erb (0.4ms)
+Completed 200 OK in 79ms (Views: 78.8ms | ActiveRecord: 0.0ms)
+```
+
+And makes it
+```
+method=GET path=/jobs/833552.json format=json controller=JobsController  action=show status=200 duration=58.33 view=40.43 db=15.26
+```
+
+This template configures lograge for production but you can optionally add the same configuration to your development environment as well
+
 # Other suggestions
 
 A few things that don't require any configuration in your app (so aren't in this template) but that I've found useful.
