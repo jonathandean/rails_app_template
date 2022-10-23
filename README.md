@@ -95,17 +95,18 @@ bin/rails app:template LOCATION=path/to/this/template.rb
 You can use another database than postgres with template if you'd like. 
 I prefer it for many reasons but one in particular is it's performance with json data types using jsonb columns.
 
-If you select another database you will need to answer `n` for no when asked to overwrite `config/database.yml`, 
-as this template creates a slightly modified version of that file specific to postgres.
+If you are using postgres answer 'Y' when asked if you want to overwrite config/database.yml to get a version
+that supports quick ENV var configuration. (Also optional if you just want the Rails default)
 
 ### --skip-jbuilder 
 
-You can certainly keep `jbuilder` above if you'd like as well, but I find rendering performance gets to be poor fairly quickly. 
+You can certainly keep `jbuilder` if you'd like, but I find rendering performance gets to be poor fairly quickly. 
 This template includes `multi_json` and `oj` for much more performant rendering of JSON from objects and hashes
 
 ### --skip-test 
 
-I'm skipping test generation because this template includes and configures `rspec` instead
+I'm skipping test generation because this template includes and configures `rspec` instead. 
+You can remove this flag if you want to have both available.
 
 ### -skip-bootsnap 
 
