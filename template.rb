@@ -108,6 +108,7 @@ copy_file "templates/view_component_preview.html.erb", "app/views/layouts/view_c
 environment <<-'EOS'
     config.autoload_paths += %W(
       #{config.root}/app/components
+      #{config.root}/spec/components/previews/
       #{config.root}/app/services
       #{config.root}/lib
     )
@@ -119,6 +120,7 @@ environment 'config.lograge.enabled = true', env: 'production'
 environment 'config.active_job.queue_adapter = :sidekiq'
 # Use the sql schema for advanced postgres support
 environment 'config.active_record.schema_format = :sql'
+environment 'config.view_component.preview_paths << "#{Rails.root}/spec/components/previews"', env: 'development'
 
 # Easily use Dry::Types in Dry::Structs
 initializer 'types.rb', <<-CODE
