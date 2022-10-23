@@ -77,6 +77,7 @@ copy_file "templates/ci.rb", "bin/ci"
 
 # Configure sidekiq and sidekiq web UI
 copy_file 'templates/sidekiq.rb', "config/initializers/sidekiq.rb"
+copy_file 'templates/routes.rake', "lib/tasks/routes.rake"
 
 prepend_to_file "config/routes.rb", <<-EOS
 require 'sidekiq/web'
