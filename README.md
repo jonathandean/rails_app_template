@@ -152,6 +152,37 @@ This template creates an `app/services/` directory for you and sets it up to aut
 While use of this is not enforced in any way it's highly recommended to create service layer for your app out of
 plain Ruby objects rather than in any of the standard Rails MVC files. 
 
+It also includes a simple base service class for our other app services to inherit:
+
+```ruby
+# app/services/application_service.rb
+class ApplicationService
+
+   private
+   
+   # Set up a tagged logger for each subclass of ApplicationService.
+   #
+   # Log messages are prefixed with the class name.
+   def logger
+      @logger ||= Rails.logger.tagged(self.class.name)
+   end
+
+end
+```
+
+When you create your services inherit from this and add any common code here.
+
+```ruby
+# app/services/my_service.rb
+class MyService < ApplicationService
+
+   def do_some_work
+      logger.info "Some work was done!"
+   end
+
+end
+```
+
 Most of your app should be plain Ruby objects containing your business logic.
 Rails Models should define your database models but not the logic for how they are used.
 Rails Controllers should essentially just handle taking parameters to send to your service layer, handle some routing logic,
@@ -509,7 +540,6 @@ For existing apps and other setups find instructions at [bundler.io](https://bun
 # TODO
 - [ ] Capybara specs
 
-# TODO ApplicationService base class
 # TODO scan template.rb for comments suggesting other features
 # TODO optional auth
 # TODO bugsnag

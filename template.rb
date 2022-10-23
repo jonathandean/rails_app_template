@@ -106,7 +106,7 @@ create_file "app/components/.keep", ''
 # ViewComponent previews for lookbook
 create_file "spec/components/previews/.keep", ''
 # A place for plain old Ruby objects
-create_file "app/services/.keep", ''
+copy_file "templates/application_service.rb", 'app/services/application_service.rb'
 
 # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
 copy_file "templates/view_component_preview.html.erb", "app/views/layouts/view_component_preview.html.erb"
