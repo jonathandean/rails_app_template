@@ -3,21 +3,23 @@
 My preferred starting point for new Rails 7 apps.
 
 Quick Summary:
-- PostgreSQL database
-- rspec for tests
-- TailwindCSS
-- ViewComponents + Lookbook
-- Turbo + Stimulus
-- importmap (instead of webpacker)
-- dotenv for local environment variable configuration
-- Setup for your service layer of plain Ruby objects in `app/services/`
-- Sidekiq for background jobs
-- Dry::Struct with types for immutable and validated Structs
-- `bin/cli` runner for ease of adding a Thor-based CLI instead of rake
-- `bin/ci` runner for running tests with some options (great locally and for a CI server)
-- brakeman for static code analysis to help detect potential security issues
-- bundler-audit to ensure you keep your dependencies up to date
-- lograge for single-line production environment request logging
+- [PostgreSQL](https://www.postgresql.org/) database configuration (optional but recommended)
+- [rspec](https://rspec.info/) for tests with [factory_bot](https://github.com/thoughtbot/factory_bot_rails) for factories instead of fixtures
+- [tailwindcss](https://tailwindcss.com/)
+- [ViewComponent](https://viewcomponent.org/) + [Lookbook](https://lookbook.build/) for creating, testing, and previewing components in your server-rendered views
+- [Turbo](https://turbo.hotwired.dev/) + [Stimulus](https://stimulus.hotwired.dev/)
+- [importmap](https://github.com/rails/importmap-rails) configuration for JavaScript (instead of webpacker)
+- [dotenv](https://github.com/bkeepers/dotenv) for local environment variable configuration
+- Setup for your service layer of plain Ruby objects in `app/services/` (example below)
+- [Sidekiq](https://sidekiq.org/) for background jobs
+- Dry::Struct with types for immutable and validated Structs (example below)
+- `bin/cli` runner for ease of adding a Thor-based CLI instead of rake (example below)
+- `bin/ci` runner for running tests with some options (great locally and for a CI server, example below)
+- [Brakeman](https://brakemanscanner.org/) for static code analysis to help detect potential security issues
+- [bundler-audit](https://github.com/rubysec/bundler-audit) to ensure you keep your dependencies up to date
+- [lograge](https://github.com/roidrage/lograge) for single-line production environment request logging
+- [Hashdiff](https://github.com/liufengyun/hashdiff) library to compute the smallest difference between two hashes
+- [Annotate](https://github.com/ctran/annotate_models) to add comments to models about the table schema and to routes for quick reference
 
 I encourage you to read below for options and explanations of each choice.
 
@@ -341,10 +343,10 @@ end
 ```
 
 Test coverage is great for components but they are visual in nature and unit tests aren't a good way to explore what 
-these components look like or help develop them. This template includes the [lookbook](https://lookbook.build/) gem
+these components look like or help develop them. This template includes the [Lookbook](https://lookbook.build/) gem
 and also sets it up for auto-loading and bundling any included Tailwind CSS files. 
 
-With [lookbook](https://lookbook.build/) you can create pretty simple previews of said components for rapid development
+With [:ookbook](https://lookbook.build/) you can create pretty simple previews of said components for rapid development
 and a central UI library to see components already available in your app.
 
 This template also includes a layout to use in our previews to include tailwind and a light gray background for them to stand out against.
@@ -602,6 +604,5 @@ For existing apps and other setups find instructions at [bundler.io](https://bun
 
 # TODO
 - [ ] Capybara specs
-- [ ] scan template.rb for comments suggesting other features
 - [ ] optional auth
-- [ ] bugsnag
+- [ ] optional bugsnag
