@@ -473,7 +473,10 @@ Hello, world!
 
 # Extra configurations
 
-Your `config/database.yml` was updated to be pre-configured for ENV var use (unless you said no when asked to overwrite the Rails-provided one.)
+## Database
+
+If you confirmed you are using PostgreSQL, your  `config/database.yml` was updated to be pre-configured for ENV var use 
+(unless you also said no when asked to overwrite the Rails-provided one.)
 
 The variables and defaults are below:
 ```
@@ -489,6 +492,40 @@ DATABASE_PASSWORD=[your_app_name_here]
 To adjust these values you can add them to a file named `.env` and reboot your dev server.
 
 Note: if you use something like Heroku this configuration may be ignored in production in favor of a `DATABASE_URL` env var.
+
+A migration was also added to enable UUID primary key support for Postgres. I prefer UUID primary keys for many reasons:
+- You don't give away any of your business secrets (for example, incremental integer Order IDs make it really easy for 
+competitors to guess how many orders you have processed so far.)
+- If you move to multiple apps and databases you are still unlikely to have primary key collision
+- It's very hard to move from integer IDs to UUID later
+
+To use them just use the standard ActiveRecord params, for example passing it to `create_table`:
+
+``` ruby
+class CreateUsers < ActiveRecord::Migration[7.0]
+  def change
+    create_table :users, id: :uuid do |t|
+      t.string :auth0_id, null: false
+      t.timestamps
+    end
+  end
+end
+```
+
+And then later in another model as a forgeign key:
+
+```ruby
+class CreateBookmarks < ActiveRecord::Migration[7.0]
+  def change
+    create_table :bookmarks, id: :uuid do |t|
+      t.belongs_to :user, foreign_key: true, type: :uuid
+      t.string :url
+    end
+  end 
+end
+```
+
+You won't need to add any special params to your models when using `belongs_to` there.
 
 # Other suggestions
 
