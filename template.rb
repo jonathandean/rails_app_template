@@ -60,6 +60,10 @@ end
 if yes?("Are you using PostgreSQL as your database?")
   # Use a version of `config/database.yml` with ENV var support built in for anyone who wants to override defaults locally
   template "templates/database.yml.erb", "config/database.yml"
+
+  generate "migration enable_postgres_uuid_support"
+  migration_filename = Dir['db/migrate/*_enable_postgres_uuid_support.rb'].first
+  insert_into_file migration_filename, "\n    enable_extension 'pgcrypto'", after: "def change"
 end
 
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config

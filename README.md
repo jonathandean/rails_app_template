@@ -505,3 +505,11 @@ rm -rf your_new_app_name/
 Then run the `rails new` command again
 
 For existing apps and other setups find instructions at [bundler.io](https://bundler.io)
+
+# TODO
+- [ ] Capybara specs
+
+# TODO ApplicationService base class
+# TODO scan template.rb for comments suggesting other features
+# TODO optional auth
+# TODO bugsnag
