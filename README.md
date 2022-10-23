@@ -17,6 +17,7 @@ Quick Summary:
 - `bin/ci` runner for running tests with some options (great locally and for a CI server)
 - brakeman for static code analysis to help detect potential security issues
 - bundler-audit to ensure you keep your dependencies up to date
+- lograge for single-line production environment request logging
 
 I encourage you to read below for options and explanations of each choice.
 
