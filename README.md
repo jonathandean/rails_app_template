@@ -3,6 +3,7 @@
 My preferred starting point for new Rails 7 apps.
 
 Quick Summary:
+- [Auth0](https://auth0.com/docs/quickstart/webapp/rails/01-login) authentication (optional)
 - [PostgreSQL](https://www.postgresql.org/) database configuration (optional but recommended)
 - [rspec](https://rspec.info/) for tests with [factory_bot](https://github.com/thoughtbot/factory_bot_rails) for factories instead of fixtures
 - [tailwindcss](https://tailwindcss.com/)
@@ -130,6 +131,203 @@ These are asked interactively as you apply the template:
 2. Whether or not you want to automatically commit the empty app when the generator is done (`git init` is run regardless)
 
 # Choices and reasoning
+
+## Auth0 Authentication (optional)
+
+You'll be asked if you want to add this optional Auth0 support when the generator runs. It is a slightly extended version of 
+[this Auth0 guide](https://auth0.com/docs/quickstart/webapp/rails/01-login) to include some controller concerns, 
+database migrations, etc.
+
+### Why Auth0?
+
+I won't pretend that Auth0 integrations are perfect but the compelling reasons for me are:
+1. Supports many authentication methods with one fairly small integration
+2. User management without needing to build it in your app
+3. Minimal security footprint to worry about in your app. Auth0 does a lot of this work for you for many auth methods.
+1. Minimal personally identifying information in your application
+   2. Improves potential [GDPR and CCPA](https://www.okta.com/blog/2021/04/ccpa-vs-gdpr/) compliance
+   3. Reduces the risk of security incidents being a major issue for your business and your customers
+4. Hosted, configurable user-facing pages
+5. Robust API as you scale beyond the out of the box hosted pages
+6. Free plan covers most small apps
+
+### Why not Auth0?
+
+1. Paid as you grow (though generally affordable)
+2. Vendor-lock for some of your user data making it potentially hard to switch to another provider or bring in house 
+Follow my recommendations below for how to extract important user data from Auth0 profiles to reduce this risk. Doing so 
+will mean the only real user data you would lose would be passwords, which you can have users re-enter with a forgot password
+email flow, though most authentication methods won't have this issue.
+3. It can be harder to troubleshoot login issues that users have given that much of the flow is outside of your directly
+observable systems.
+
+### Requiring login to your app
+
+To require login for a controller just add `include RequireLogin`:
+```ruby
+class MyController < ApplicationController
+   include RequireLogin
+end
+```
+
+To secure part of a controller just skip the `before_action` on the actions you don't want to secure:
+```ruby
+class MyController < ApplicationController
+   include RequireLogin
+   skip_before_action :require_login!, only: [:not_secured]
+   
+   def secured
+      # code here
+   end
+   
+   def not_secured
+      # code here
+   end
+end
+```
+
+**NOTE:** you can also add `include RequireLogin` to your `ApplicationController` to require login site-wide by default
+and use `skip_before_action :require_login!` anywhere you don't want to require it. If you do this you _must_ add
+`skip_before_action :require_login!` to `app/controllers/auth0_controller.rb` as well.
+
+To get the current logged in user use `current_user` in your controllers or views:
+```ruby
+class MyController < ApplicationController
+   include RequireLogin
+   def secured
+      current_user
+   end
+end
+```
+```erb
+<p>The current user's ID is: <%= current_user.id %></p>
+```
+
+### Adding a login button
+
+```erb
+<%= button_to 'Login', '/auth/auth0', method: :post %>
+```
+
+### Adding a logout button
+
+```erb
+<%= button_to 'Logout', 'auth/logout', method: :get %>
+```
+
+### Auth0 user profile information
+
+To get the current logged in user's Auth0 profile information use `current_user_info` in your controllers or views:
+```ruby
+class MyController < ApplicationController
+   include RequireLogin
+   def secured
+      pp current_user_info
+   end
+end
+```
+```erb
+<pre><%= current_user_info.inspect %></pre>
+```
+
+This object is an instance of `OpenStruct`.
+
+**WARNING:** The structure and information in this object will be determined by the authentication methods you configure
+in Auth0. Make sure all of your use of it are nil-safe and provide alternatives for missing data.
+
+### Database-persisted User model
+
+The user object in your database by default is very minimal:
+
+```ruby
+# app/models/user.rb
+
+# == Schema Information
+#
+# Table name: users
+#
+#  id         :uuid             not null, primary key
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#  auth0_id   :string           not null
+#
+class User < ApplicationRecord
+end
+```
+
+Note that we do **NOT** store any real identifying information about the user in the database by default for the following reasons:
+1. You should take user privacy and security very seriously and only store absolutely essential information. I don't
+know your app and so I don't know how to opt in to the correct data for you.
+2. This is a 3rd party auth system I don't which information will or won't be provided based on the authentication 
+methods you configure in Auth0.
+3. You should consider setting up [Active Record Encryption](https://guides.rubyonrails.org/active_record_encryption.html)
+first and limiting the user's plaintext data in the database.
+4. We do store the user's information in the session and accessible via `current_user_info` if you need to use it just in the context of your views and interactions
+with the user on the website.
+
+If you do decide to store this information in your database I highly recommend taking the following approach that I always
+use with 3rd-party data:
+1. Store exactly what you are given in the database without manipulation. I find `jsonb` (or `json` if that's not available)
+types to be the best here. Auth0 is the source of truth here and you just have to get what you get from it.
+2. You can subsequently extract and store derived versions in a separate field, ideally async from the user or in a flow
+where they can adjust/verify the information. Otherwise you have a risk that changing data in the 3rd party prevents
+signups or logins to your app. Take their data as a default and allow the user to provide a correction when possible.
+
+Here's a simplified example to get you started:
+
+```
+bin/rails generation migration add_auth0_profile_to_users
+```
+
+```ruby
+# db/migrate/[timestamp]_add_auth0_profile_to_users.rb
+class AddAuth0ProfileToUsers < ActiveRecord::Migration[7.0]
+   def change
+      add_column :users, :auth0_profile, :jsonb
+   end
+end
+```
+
+```
+bin/rails generation migration add_email_to_users
+```
+
+```ruby
+# db/migrate/[timestamp]_add_email_to_users.rb
+class AddEmailToUsers < ActiveRecord::Migration[7.0]
+   def change
+      add_column :users, :email, :string, null: true
+   end
+end
+```
+Now edit `Auth0Controller`:
+
+```ruby
+# app/controllers/auth0_controller.rb
+class Auth0Controller < ApplicationController
+   def callback
+      # Existing code:
+      auth_info = request.env['omniauth.auth']
+      auth0_id = auth_info['extra']['raw_info']['sub']
+      user = User.find_or_create_by!(auth0_id: auth0_id)
+      session[:user_id] = user.id
+      session[:user_info] = auth_info['extra']['raw_info']
+      
+      # Add the following:
+      user.update!(auth0_profile: session[:user_info])
+      # Note that you can also remove the use of `session[:user_info]` here and edit `current_user_info` in ApplicationController
+      # to retrieve via `current_user.auth0_profile`, or just remove use of `current_user_info` altogether.
+   end
+   
+   # ... other existing code below ....
+end
+```
+
+Then after login check for the existence of `current_user.email` and if blank, present the user a form to enter or confirm
+their email address with a default value in the text field of the form as `current_user_info.email`. This ensures a one click
+confirmation of the email in Auth0 as well as a way to enter it when not given by that particular Auth0 authentication method.
+You could also queue a background job that attempts to set it via `user.update!(email: user.auth0_profile['email'])` if email
+is fully optional in your app.
 
 ## Environment variables
 
@@ -606,3 +804,4 @@ For existing apps and other setups find instructions at [bundler.io](https://bun
 - [ ] Capybara specs
 - [ ] optional auth
 - [ ] optional bugsnag
+- [ ] pagy

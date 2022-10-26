@@ -10,6 +10,8 @@ if ruby_gemset
   run "echo \"#{ruby_gemset}\" > .ruby-gemset"
 end
 
+create_file ".env"
+
 # View components for portions of views with more complex logic
 gem "view_component"
 # Reduce Request logging to a single line in production
@@ -39,6 +41,12 @@ gem 'tty-progressbar'
 # Static security analysis
 gem 'brakeman'
 
+add_auth0 = yes?("Do you want to include authentication via Auth0?")
+if add_auth0
+  gem 'omniauth-auth0'
+  gem 'omniauth-rails_csrf_protection' # prevents forged authentication requests
+end
+
 gem_group :development do
   # Auto-annotate files with schema and other info
   gem "annotate"
@@ -57,13 +65,11 @@ gem_group :development, :test do
   gem 'bundler-audit'
 end
 
-if yes?("Are you using PostgreSQL as your database?")
+is_using_postgres = yes?("Are you using PostgreSQL as your database?")
+
+if is_using_postgres
   # Use a version of `config/database.yml` with ENV var support built in for anyone who wants to override defaults locally
   template "templates/database.yml.erb", "config/database.yml"
-
-  generate "migration enable_postgres_uuid_support"
-  migration_filename = Dir['db/migrate/*_enable_postgres_uuid_support.rb'].first
-  insert_into_file migration_filename, "\n    enable_extension 'pgcrypto'", after: "def change"
 end
 
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
@@ -149,6 +155,62 @@ after_bundle do
     './app/components/**/*.{rb,erb,haml,html,slim}',
     './spec/components/previews/**/*.{rb,html.erb}',
   EOS
+
+  if is_using_postgres
+    generate "migration enable_postgres_uuid_support"
+    migration_filename = Dir['db/migrate/*_enable_postgres_uuid_support.rb'].first
+    insert_into_file migration_filename, "\n    enable_extension 'pgcrypto'", after: "def change"
+  end
+
+  if add_auth0
+    auth0_client_id = ask("What is your Auth0 Client ID? (or you can manually add to .env later)")
+    auth0_client_secret = ask("What is your Auth0 Client Secret? (or you can manually add to .env later)")
+    auth0_domain = ask("What is your Auth0 Domain? (or you can manually add to .env later)")
+
+    append_to_file ".env", <<-EOS
+AUTH0_CLIENT_ID="#{auth0_client_id}"
+AUTH0_CLIENT_SECRET="#{auth0_client_secret}"
+AUTH0_DOMAIN="#{auth0_domain}"
+    EOS
+
+    copy_file 'templates/auth0.rb', "config/initializers/auth0.rb"
+    route <<-EOS
+    get '/auth/auth0/callback' => 'auth0#callback'
+    get '/auth/failure' => 'auth0#failure'
+    get '/auth/logout' => 'auth0#logout'
+    EOS
+    copy_file "templates/auth0_controller.rb", "app/controllers/auth0_controller.rb"
+    copy_file "templates/require_login.rb", "app/controllers/concerns/require_login.rb"
+    application_controller_code = <<-EOS
+  helper_method :current_user, :current_user_info, :logged_in?
+
+  protected
+
+  def logged_in?
+    current_user.present?
+  end
+
+  def current_user
+    @current_user ||= User.find_by(id: session[:user_id])
+  end
+
+  def current_user_info
+    current_user_info ||= OpenStruct.new session[:user_info]
+  end
+    EOS
+    insert_into_file "app/controllers/application_controller.rb", application_controller_code, after: "ActionController::Base"
+
+
+    generate "model User"
+    migration_filename = Dir['db/migrate/*_create_users.rb'].first
+    migration_code = <<-EOS
+    create_table :users, id: :uuid do |t|
+      t.string :auth0_id, null: false
+      t.timestamps
+    end
+    EOS
+    insert_into_file migration_filename, migration_code, after: "def change"
+  end
 
   git :init
 
