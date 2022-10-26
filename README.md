@@ -796,6 +796,13 @@ bundle update --bundler
 cd ..
 rm -rf your_new_app_name/
 ```
+
+If you don't have bundler at all do
+
+```
+gem install bundler
+```
+
 Then run the `rails new` command again
 
 For existing apps and other setups find instructions at [bundler.io](https://bundler.io)
