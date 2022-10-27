@@ -514,28 +514,32 @@ ensures:
 ```ruby
 # app/components/button_component.rb
 class ButtonComponent < ViewComponent::Base
-   attr_reader :bg_class, :text_color_class
-   def initialize(kind: nil)
-      case kind
-      when :primary
-         @bg_class = "bg-blue-600"
-         @text_color_class = "text-white"
+   attr_reader :variant_classes, :type, :disabled
+   def initialize(variant: :default, type: "button", disabled: false)
+      @type = type
+      @disabled = disabled
+      if disabled
+         @variant_classes = "border-gray-300 bg-white text-gray-400 cursor-not-allowed"
       else
-         @bg_class = "bg-gray-200"
-         @text_color_class = "text-gray-700"
+         case variant
+         when :primary
+            @variant_classes = "border-blue-600 bg-blue-500 hover:bg-blue-600 hover:border-blue-700 text-white"
+         else
+            @variant_classes = "border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+         end
       end
    end
 end
 ```
 ```erb
 <!-- app/components/button_component.html.erb -->
-<button type="button" class="inline-block px-6 py-2.5 <%= bg_class %> <%= text_color_class %> font-medium text-xs leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out">
+<button type="<%= type %>" class="<%= variant_classes %> border py-2 px-4 rounded-md"<% if disabled %> disabled="disabled"<% end %>>
   <%= content %>
 </button>
 ```
 ```erb
 <!-- app/views/example/index.html.erb -->
-<%= render ButtonComponent.new(kind: :primary) do %>
+<%= render ButtonComponent.new do %>
   Button Text
 <% end %>
 ```
@@ -552,19 +556,30 @@ This template also includes a layout to use in our previews to include tailwind 
 ```ruby
 # spec/components/previews/button_component_preview.rb
 class ButtonComponentPreview < ViewComponent::Preview
-   # Provided by this template
    layout "view_component_preview"
 
    # @!group
    def default
       render ButtonComponent.new do
-         "Button"
+         "Default Button"
       end
    end
 
    def primary
-      render ButtonComponent.new(kind: :primary) do
-         "Button"
+      render ButtonComponent.new(variant: :primary) do
+         "Primary Button"
+      end
+   end
+
+   def submit
+      render ButtonComponent.new(variant: :primary, type: "submit") do
+         "Submit Button"
+      end
+   end
+
+   def disabled
+      render ButtonComponent.new(variant: :primary, type: "submit", disabled: true) do
+         "Disabled Button"
       end
    end
    # @!endgroup

@@ -117,6 +117,9 @@ create_file "spec/components/previews/.keep", ''
 copy_file "templates/link_component.rb", "app/components/link_component.rb"
 copy_file "templates/link_component.html.erb", "app/components/link_component.html.erb"
 copy_file "templates/link_component_preview.rb", "spec/components/previews/link_component_preview.rb"
+copy_file "templates/button_component.rb", "app/components/button_component.rb"
+copy_file "templates/button_component.html.erb", "app/components/button_component.html.erb"
+copy_file "templates/button_component_preview.rb", "spec/components/previews/button_component_preview.rb"
 
 # A place for plain old Ruby objects
 copy_file "templates/application_service.rb", 'app/services/application_service.rb'
@@ -127,7 +130,7 @@ copy_file "templates/view_component_preview.html.erb", "app/views/layouts/view_c
 environment <<-'EOS'
     config.autoload_paths += %W(
       #{config.root}/app/components
-      #{config.root}/spec/components/previews/
+      #{config.root}/spec/components/previews
       #{config.root}/app/services
       #{config.root}/lib
     )
