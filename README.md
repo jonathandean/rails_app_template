@@ -828,6 +828,6 @@ For existing apps and other setups find instructions at [bundler.io](https://bun
 
 # TODO
 - [ ] Capybara specs
-- [ ] optional auth
 - [ ] optional bugsnag
 - [ ] pagy
+- [ ] pagy ViewComponents
