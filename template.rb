@@ -112,6 +112,12 @@ EOS
 create_file "app/components/.keep", ''
 # ViewComponent previews for lookbook
 create_file "spec/components/previews/.keep", ''
+
+# Example ViewComponents
+copy_file "templates/link_component.rb", "app/components/link_component.rb"
+copy_file "templates/link_component.html.erb", "app/components/link_component.html.erb"
+copy_file "templates/link_component_preview.rb", "spec/components/previews/link_component_preview.rb"
+
 # A place for plain old Ruby objects
 copy_file "templates/application_service.rb", 'app/services/application_service.rb'
 
@@ -166,8 +172,8 @@ after_bundle do
   <nav class="mt-8">
     <h2 class="font-semibold text-xl">Navigation</h2>
     <ul>
-      <li><a class="underline text-red-500 hover:text-red-600" href="/lookbook">Lookbook (ViewComponent Previews)</a></li>
-      <li><a class="underline text-red-500 hover:text-red-600" href="/admin/jobs">Sidekiq</a></li>
+      <li><%= render LinkComponent.new(url: '/lookbook').with_content("Lookbook (ViewComponent Previews)") %></li>
+      <li><%= render LinkComponent.new(url: '/admin/jobs').with_content("Sidekiq") %></li>
     </ul>
   </nav>
 EOS
@@ -260,7 +266,7 @@ AUTH0_DOMAIN="#{auth0_domain}"
     insert_into_file "app/views/home/index.html.erb", template_login_button_code, after: "<p>Find me in app/views/home/index.html.erb</p>"
     user_link_code = <<-EOS
 
-  <li><a class="underline text-red-500 hover:text-red-600" href="/user/show">User Info</a></li>
+  <li><%= render LinkComponent.new(url: '/user/show').with_content("User Info") %></li>
     EOS
     insert_into_file "app/views/home/index.html.erb", user_link_code, after: "<ul>"
     user_info_code = <<-EOS
@@ -275,7 +281,7 @@ AUTH0_DOMAIN="#{auth0_domain}"
     </dl>
   </div>
   <nav class="mt-8">
-    <a class="underline text-red-500 hover:text-red-600" href="/">Back</a>
+    <%= render LinkComponent.new(url: '/').with_content("Back") %>
   </nav>
     EOS
     insert_into_file "app/views/user/show.html.erb", user_info_code, after: "<p>Find me in app/views/user/show.html.erb</p>"
