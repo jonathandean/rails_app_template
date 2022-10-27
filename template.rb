@@ -92,6 +92,7 @@ copy_file 'templates/sidekiq.rb', "config/initializers/sidekiq.rb"
 copy_file 'templates/routes.rake', "lib/tasks/routes.rake"
 
 prepend_to_file "config/routes.rb", <<-EOS
+
 require 'sidekiq/web'
 EOS
 
@@ -160,7 +161,8 @@ after_bundle do
   generate "controller Home index"
   route "root to: 'home#index'"
 
-  markup = <<-EOS
+  nav_markup = <<-EOS
+
   <nav class="mt-8">
     <h2 class="font-semibold text-xl">Navigation</h2>
     <ul>
@@ -169,7 +171,16 @@ after_bundle do
     </ul>
   </nav>
 EOS
-  insert_into_file "app/views/home/index.html.erb", markup, before: "</div>"
+  insert_into_file "app/views/home/index.html.erb", nav_markup, before: "</div>"
+
+  flash_markup = <<-EOS
+    <% flash.each do |key, message| %>
+      <div class="container mx-auto mt-8 px-5">
+        <p><%= key %>: <%= message %></p>
+      </div>
+    <% end %>
+EOS
+  insert_into_file "app/views/layouts/application.html.erb", flash_markup, after: "<body>"
 
   if is_using_postgres
     generate "migration enable_postgres_uuid_support"
@@ -197,6 +208,7 @@ AUTH0_DOMAIN="#{auth0_domain}"
     copy_file "templates/auth0_controller.rb", "app/controllers/auth0_controller.rb"
     copy_file "templates/require_login.rb", "app/controllers/concerns/require_login.rb"
     application_controller_code = <<-EOS
+
   helper_method :current_user, :current_user_info, :logged_in?
 
   protected
@@ -210,7 +222,7 @@ AUTH0_DOMAIN="#{auth0_domain}"
   end
 
   def current_user_info
-    current_user_info ||= OpenStruct.new session[:user_info]
+    @current_user_info ||= OpenStruct.new session[:user_info]
   end
     EOS
     insert_into_file "app/controllers/application_controller.rb", application_controller_code, after: "ActionController::Base"
@@ -219,12 +231,54 @@ AUTH0_DOMAIN="#{auth0_domain}"
     generate "model User"
     migration_filename = Dir['db/migrate/*_create_users.rb'].first
     migration_code = <<-EOS
-    create_table :users, id: :uuid do |t|
+
       t.string :auth0_id, null: false
-      t.timestamps
-    end
     EOS
-    insert_into_file migration_filename, migration_code, after: "def change"
+    insert_into_file migration_filename, ", id: :uuid", after: "create_table :users"
+    insert_into_file migration_filename, migration_code, before: "t.timestamps"
+
+    # Example pages/controllers
+    generate "controller User show"
+    require_login_code = <<-EOS
+
+  include RequireLogin
+    EOS
+    insert_into_file "app/controllers/user_controller.rb", require_login_code, after: "ApplicationController"
+    template_login_button_code = <<-EOS
+
+  <% if logged_in? %>
+    <p class="pt-6">
+      <%= button_to 'Logout', 'auth/logout', method: :get, data: { turbo: false }, class: "inline-block px-6 py-2.5 bg-gray-200 text-gray-700 font-medium text-base leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out" %>
+    </p>
+  <% else %>
+    <p class="pt-6">
+      <%= button_to 'Login', '/auth/auth0', method: :post, data: { turbo: false }, class: "inline-block px-6 py-2.5 bg-gray-200 text-gray-700 font-medium text-base leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out" %>
+    </p>
+  <% end %>
+
+    EOS
+    insert_into_file "app/views/home/index.html.erb", template_login_button_code, after: "<p>Find me in app/views/home/index.html.erb</p>"
+    user_link_code = <<-EOS
+
+  <li><a class="underline text-red-500 hover:text-red-600" href="/user/show">User Info</a></li>
+    EOS
+    insert_into_file "app/views/home/index.html.erb", user_link_code, after: "<ul>"
+    user_info_code = <<-EOS
+
+  <div class="mt-8">
+    <h2 class="font-semibold text-xl">User Info</h2>
+    <dl>
+      <% current_user_info.each_pair.each do |key, value| %>
+        <dt class="font-semibold"><%= key %></dt>
+        <dd><%= value %></dd>
+      <% end %>
+    </dl>
+  </div>
+  <nav class="mt-8">
+    <a class="underline text-red-500 hover:text-red-600" href="/">Back</a>
+  </nav>
+    EOS
+    insert_into_file "app/views/user/show.html.erb", user_info_code, after: "<p>Find me in app/views/user/show.html.erb</p>"
   end
 
   git :init
