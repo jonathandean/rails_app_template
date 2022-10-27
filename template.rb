@@ -117,9 +117,12 @@ create_file "spec/components/previews/.keep", ''
 copy_file "templates/link_component.rb", "app/components/link_component.rb"
 copy_file "templates/link_component.html.erb", "app/components/link_component.html.erb"
 copy_file "templates/link_component_preview.rb", "spec/components/previews/link_component_preview.rb"
+copy_file "templates/css_classes_helper.rb", "app/helpers/css_classes_helper.rb"
 copy_file "templates/button_component.rb", "app/components/button_component.rb"
 copy_file "templates/button_component.html.erb", "app/components/button_component.html.erb"
 copy_file "templates/button_component_preview.rb", "spec/components/previews/button_component_preview.rb"
+copy_file "templates/button_to_component.rb", "app/components/button_to_component.rb"
+copy_file "templates/button_to_component_preview.rb", "spec/components/previews/button_to_component_preview.rb"
 
 # A place for plain old Ruby objects
 copy_file "templates/application_service.rb", 'app/services/application_service.rb'
@@ -257,11 +260,11 @@ AUTH0_DOMAIN="#{auth0_domain}"
 
   <% if logged_in? %>
     <p class="pt-6">
-      <%= button_to 'Logout', 'auth/logout', method: :get, data: { turbo: false }, class: "inline-block px-6 py-2.5 bg-gray-200 text-gray-700 font-medium text-base leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out" %>
+      <%= render ButtonToComponent.new 'Logout', '/auth/logout', method: :get, variant: :default, turbo: false %>
     </p>
   <% else %>
     <p class="pt-6">
-      <%= button_to 'Login', '/auth/auth0', method: :post, data: { turbo: false }, class: "inline-block px-6 py-2.5 bg-gray-200 text-gray-700 font-medium text-base leading-tight uppercase rounded shadow-md hover:shadow-lg focus:shadow-lg focus:outline-none focus:ring-0 active:shadow-lg transition duration-150 ease-in-out" %>
+      <%= render ButtonToComponent.new 'Login', '/auth/auth0', method: :post, variant: :primary, turbo: false %>
     </p>
   <% end %>
 

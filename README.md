@@ -548,7 +548,7 @@ Test coverage is great for components but they are visual in nature and unit tes
 these components look like or help develop them. This template includes the [Lookbook](https://lookbook.build/) gem
 and also sets it up for auto-loading and bundling any included Tailwind CSS files. 
 
-With [:ookbook](https://lookbook.build/) you can create pretty simple previews of said components for rapid development
+With [Lookbook](https://lookbook.build/) you can create pretty simple previews of said components for rapid development
 and a central UI library to see components already available in your app.
 
 This template also includes a layout to use in our previews to include tailwind and a light gray background for them to stand out against.
@@ -589,6 +589,10 @@ end
 Now if you visit http://localhost:3000/lookbook you will a preview of your component in two styles:
 
 ![Lookbook Screenshot](screenshots/lookbook_example.png)
+
+**BONUS!** This template includes a slightly more advanced example where button styles are shared between a `Button` and
+`ButtonTo`component (the latter being similar in use to the Rails `button_to` helper.) If you include Auth0 support then
+the example templates have them in use as well.
 
 ## Testing
 
