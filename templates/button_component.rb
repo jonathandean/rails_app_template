@@ -6,6 +6,6 @@ class ButtonComponent < ViewComponent::Base
   def initialize(variant: :default, type: "button", disabled: false)
     @type = type
     @disabled = disabled
-    @button_classes = css_classes_for_button_variant(variant, disabled: false)
+    @button_classes = css_classes_for_button_variant(variant, disabled: disabled)
   end
 end
