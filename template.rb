@@ -156,6 +156,21 @@ after_bundle do
     './spec/components/previews/**/*.{rb,html.erb}',
   EOS
 
+  # Example pages
+  generate "controller Home index"
+  route "root to: 'home#index'"
+
+  markup = <<-EOS
+  <nav class="mt-8">
+    <h2 class="font-semibold text-xl">Navigation</h2>
+    <ul>
+      <li><a class="underline text-red-500 hover:text-red-600" href="/lookbook">Lookbook (ViewComponent Previews)</a></li>
+      <li><a class="underline text-red-500 hover:text-red-600" href="/admin/jobs">Sidekiq</a></li>
+    </ul>
+  </nav>
+EOS
+  insert_into_file "app/views/home/index.html.erb", markup, before: "</div>"
+
   if is_using_postgres
     generate "migration enable_postgres_uuid_support"
     migration_filename = Dir['db/migrate/*_enable_postgres_uuid_support.rb'].first
