@@ -186,6 +186,7 @@ EOS
   insert_into_file "app/views/home/index.html.erb", nav_markup, before: "</div>"
 
   flash_markup = <<-EOS
+
     <% flash.each do |key, message| %>
       <div class="container mx-auto mt-8 px-5">
         <p><%= key %>: <%= message %></p>
