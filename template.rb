@@ -157,6 +157,9 @@ CODE
 after_bundle do
   # Setup rspec
   generate "rspec:install"
+
+  insert_into_file "spec/rails_helper.rb", "\n    config.include FactoryBot::Syntax::Methods", after: "RSpec.configure do |config|"
+
   # Setup annotate
   generate "annotate:install"
   # Enable route and model annotation
