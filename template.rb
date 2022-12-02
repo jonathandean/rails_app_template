@@ -76,8 +76,11 @@ end
 append_to_file ".gitignore", <<-EOS
 
 # Local-only environment variables
-.env
-.env.*
+# See https://github.com/bkeepers/dotenv#should-i-commit-my-env-file
+.env.development.local
+.env.test.local
+.env.production.local
+.env.local
 EOS
 
 # Create a command line interface runner for thor so you can run it as `bin/cli subcommand`
