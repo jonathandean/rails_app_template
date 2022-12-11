@@ -168,6 +168,7 @@ after_bundle do
   # Enable route and model annotation
   gsub_file "lib/tasks/auto_annotate_models.rake", /'models'(\s*)=>(\s*)'false'/, "'models'                      => 'true'"
   gsub_file "lib/tasks/auto_annotate_models.rake", /'routes'(\s*)=>(\s*)'false'/, "'routes'                      => 'true'"
+  gsub_file "lib/tasks/auto_annotate_models.rake", /'ignore_routes'(\s*)=>(\s*)nil/, "'ignore_routes'               => '(cable|rails|turbo)'"
 
   gsub_file "config/tailwind.config.js", /'\.\/app\/javascript\/\*\*\/\*\.js',/, <<-EOS
     './app/javascript/**/*.{js,ts}',
