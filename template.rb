@@ -221,9 +221,9 @@ AUTH0_DOMAIN="#{auth0_domain}"
 
     copy_file 'templates/auth0.rb', "config/initializers/auth0.rb"
     route <<-EOS
-    get '/auth/auth0/callback' => 'auth0#callback'
-    get '/auth/failure' => 'auth0#failure'
-    get '/auth/logout' => 'auth0#logout'
+    get '/auth/auth0/callback', to: 'auth0#callback'
+    get '/auth/failure', to: 'auth0#failure'
+    get '/auth/logout', to: 'auth0#logout'
     EOS
     copy_file "templates/auth0_controller.rb", "app/controllers/auth0_controller.rb"
     copy_file "templates/require_login.rb", "app/controllers/concerns/require_login.rb"
