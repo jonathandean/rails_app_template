@@ -206,6 +206,7 @@ EOS
     generate "migration enable_postgres_uuid_support"
     migration_filename = Dir['db/migrate/*_enable_postgres_uuid_support.rb'].first
     insert_into_file migration_filename, "\n    enable_extension 'pgcrypto'", after: "def change"
+    insert_into_file "app/models/application_record.rb", "\n  self.implicit_order_column = :created_at", after: "primary_abstract_class"
   end
 
   if add_auth0
