@@ -251,12 +251,37 @@ AUTH0_DOMAIN="#{auth0_domain}"
 
     generate "model User"
     migration_filename = Dir['db/migrate/*_create_users.rb'].first
+    allow_guest_users = yes?("Do you want to support guest user accounts?")
     migration_code = <<-EOS
 
-      t.string :auth0_id, null: false
+      t.string :auth0_id, null: #{allow_guest_users ? 'true': 'false'}
     EOS
     insert_into_file migration_filename, ", id: :uuid", after: "create_table :users"
     insert_into_file migration_filename, migration_code, before: "t.timestamps"
+    if allow_guest_users
+      guest_method = <<-EOS
+
+  def guest?
+    auth0_id.blank?
+  end
+EOS
+      insert_into_file "app/models/user.rb", guest_method, after: "ApplicationRecord"
+
+      guest_login_method = <<-EOS
+
+
+  def guest_login
+    user = User.create!
+    session[:user_id] = user.id
+
+    flash.notice = "You are now logged in as a guest! If you log out or change devices all data will be lost"
+    redirect_to root_path
+  end
+
+EOS
+      insert_into_file "app/controllers/auth0_controller.rb", guest_login_method, before: "def failure"
+      route "post '/auth/guest_login' => 'auth0#guest_login', as: 'guest_login'"
+    end
 
     # Example pages/controllers
     generate "controller User show"
