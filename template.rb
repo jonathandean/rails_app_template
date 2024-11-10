@@ -146,9 +146,19 @@ EOS
 environment 'config.lograge.enabled = true', env: 'production'
 # Use sidekiq for background jobs
 environment 'config.active_job.queue_adapter = :sidekiq'
-# Use the sql schema for advanced postgres support
-environment 'config.active_record.schema_format = :sql'
+if is_using_postgres
+  # Use the sql schema for advanced postgres support
+  environment 'config.active_record.schema_format = :sql'
+  # Use UUIDs for primary keys in postgres
+  environment <<-'EOS'
+      config.generators do |g|
+        g.orm :active_record, primary_key_type: :uuid
+      end
+  EOS
+end
+# Configure lookbook preview path
 environment 'config.view_component.preview_paths << "#{Rails.root}/spec/components/previews"', env: 'development'
+
 
 # Easily use Dry::Types in Dry::Structs
 initializer 'types.rb', <<-CODE
@@ -342,7 +352,7 @@ EOS
   puts "createuser #{app_name} -s -d -P -r -h localhost -p 5432"
   puts "  (if your database host or port is different you will need to adjust the above)"
   puts "  (if you are using Postgres.app you may need a fully qualified path if you've not added the bin dir to your path, "
-  puts"     such as: `/Applications/Postgres.app/Contents/Versions/14/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
+  puts"     such as: `/Applications/Postgres.app/Contents/Versions/15/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
   puts "bin/rake db:create"
   puts "bin/rake db:migrate"
   puts "overmind start -f Procfile.dev"
