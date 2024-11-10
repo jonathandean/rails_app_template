@@ -29,7 +29,23 @@ I encourage you to read below for options and explanations of each choice.
 ## New apps
 
 ### 1. Install Ruby
-First, install the latest version of Ruby. At the moment that is 3.1.2. I recommend using RVM, rbenv, or similar and not using your system Ruby.
+First, install the latest version of Ruby. At the moment that is 3.3.5. You should use RVM, rbenv, or similar and not using your system-provided Ruby, as that should remain untouched in order to properly support any operating system needs.
+
+#### Troubleshooting on macOS
+
+If you use homebrew on your system and get an error referencing openssl 3 along the lines of:
+
+```
+./openssl_missing.h:195:11: warning: 'TS_VERIFY_CTS_set_certs' macro redefined [-Wmacro-redefined]
+#  define TS_VERIFY_CTS_set_certs(ctx, crts) ((ctx)->certs=(crts))
+```
+
+...then it's likely you need some additional compiler flags added to your ruby compilation command in order to make sure the openssl libararies can be found.
+
+For example, for RVM this will do the trick:
+```
+rvm reinstall 3.3.5 --with-openssl-dir=$(brew --prefix openssl) --with-readline-dir=$(brew --prefix readline) --with-libyaml-dir=$(brew --prefix libyaml) --disable-dtrace --disable-docs
+```
 
 ### 2. Ensure you have the latest version of bundler
 
