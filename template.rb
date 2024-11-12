@@ -47,9 +47,6 @@ gem 'thor' # used by `bin/cli` and it's commands
 gem 'tty-option' # presenting options in an interactive CLI
 gem 'tty-progressbar'
 
-# Static security analysis
-gem 'brakeman'
-
 add_auth0 = yes?("Do you want to include authentication via Auth0?")
 if add_auth0
   gem 'omniauth-auth0'
