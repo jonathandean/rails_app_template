@@ -193,6 +193,8 @@ If you need a JavaScript bundler for any of the reasons above and have no proble
 
 For this, just add `--javascript=esbuild` to the `rails new` command
 
+Recommended further reading on the options for JavaScript bundling (or not) here: https://dev.to/konnorrogers/rails-frontend-bundling-which-one-should-i-choose-9gp
+
 # Choices and reasoning
 
 ## Auth0 Authentication (optional)
