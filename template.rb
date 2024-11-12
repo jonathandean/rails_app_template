@@ -5,7 +5,7 @@ end
 
 ruby_version = ask("Which ruby version are you using? This will add it to the .ruby-version file:")
 run "echo \"#{ruby_version}\" > .ruby-version"
-ruby_gemset = ask("Enter a gemset name for .ruby-gemset or just hit enter to skip creation of this file:")
+ruby_gemset = ask("Enter a gemset name for .ruby-gemset - or hit enter to skip creation of this file if you aren't using RVM, don't want it, or aren't sure:")
 if ruby_gemset
   run "echo \"#{ruby_gemset}\" > .ruby-gemset"
 end
@@ -14,23 +14,32 @@ create_file ".env"
 
 # View components for portions of views with more complex logic
 gem "view_component"
-# Reduce Request logging to a single line in production
-gem "lograge"
+
+lograge = yes?("Do you want to add and configure lograge to reduce Request logging to a single line in production?")
+if lograge
+  # Reduce Request logging to a single line in production
+  gem "lograge"
+end
 
 # JSON performance
 gem 'multi_json'
 gem 'oj'
 
-# Backgroud jobs
-gem 'sidekiq'
+sidekiq = yes?("Do you want to use Sidekiq and Redis for background jobs?")
+if sidekiq
+  # Backgroud jobs
+  gem 'sidekiq'
+end
 
 # Clean config and type safe/validatable structs
 gem 'dry-configurable'
 gem 'dry-struct'
 gem 'dry-validation'
 
-# Compare hashes and arrays
-gem 'hashdiff'
+if yes?("Do you want hashdiff to compare the differences between hashes and arrays?")
+  # Compare hashes and arrays
+  gem 'hashdiff'
+end
 
 # CLI
 gem 'pastel' # styling strings for printing in the terminal
@@ -54,11 +63,15 @@ gem_group :development do
   gem "lookbook"
 end
 
+rspec = yes?("Do you want to use RSpec instead of minitest?")
+
 gem_group :development, :test do
   # Ease of setting environment variables locally
   gem "dotenv-rails"
-  # rspec for unit tests
-  gem "rspec-rails"
+  if rspec
+    # rspec for unit tests
+    gem "rspec-rails"
+  end
   # Factories over fixtures for tests
   gem "factory_bot_rails"
   # Patch-level verification for bundler
@@ -90,22 +103,28 @@ copy_file "templates/cli/example_subcommand.rb", "app/cli/example_subcommand.rb"
 # Create a runner for your tests by running `bin/ci` (ci standing for continuous integration)
 copy_file "templates/ci.rb", "bin/ci"
 
-# Configure sidekiq and sidekiq web UI
-copy_file 'templates/sidekiq.rb', "config/initializers/sidekiq.rb"
-copy_file 'templates/routes.rake', "lib/tasks/routes.rake"
+if sidekiq
+  # Configure sidekiq and sidekiq web UI
+  copy_file 'templates/sidekiq.rb', "config/initializers/sidekiq.rb"
+  prepend_to_file "config/routes.rb", <<-EOS
 
-prepend_to_file "config/routes.rb", <<-EOS
+  require 'sidekiq/web'
+  EOS
+  route <<-EOS
+    namespace :admin do
+      mount Sidekiq::Web => '/jobs', constraints: lambda {|request|
+        # TODO authorize this
+        true
+      }
+    end
+  EOS
+end
 
-require 'sidekiq/web'
-EOS
+# Workaround to fix an issue with the annotate gem and route annotation
+copy_file 'templates/annotate_routes.rake', "lib/tasks/routes.rake"
+
 
 route <<-EOS
-  namespace :admin do
-    mount Sidekiq::Web => '/jobs', constraints: lambda {|request|
-      # TODO authorize this
-      true
-    }
-  end
   if Rails.env.development?
     mount Lookbook::Engine, at: "/lookbook"
   end
@@ -142,8 +161,11 @@ environment <<-'EOS'
     )
 EOS
 
-# Enable lograge in the production environment
-environment 'config.lograge.enabled = true', env: 'production'
+if lograge
+  # Enable lograge in the production environment
+  environment 'config.lograge.enabled = true', env: 'production'
+end
+
 # Use sidekiq for background jobs
 environment 'config.active_job.queue_adapter = :sidekiq'
 if is_using_postgres
@@ -168,10 +190,11 @@ end
 CODE
 
 after_bundle do
-  # Setup rspec
-  generate "rspec:install"
-
-  insert_into_file "spec/rails_helper.rb", "\n    config.include FactoryBot::Syntax::Methods", after: "RSpec.configure do |config|"
+  if rspec
+    # Setup rspec
+    generate "rspec:install"
+    insert_into_file "spec/rails_helper.rb", "\n    config.include FactoryBot::Syntax::Methods", after: "RSpec.configure do |config|"
+  end
 
   # Setup annotate
   generate "annotate:install"

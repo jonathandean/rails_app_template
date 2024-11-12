@@ -1,26 +1,40 @@
 # Rails App Template
 
-My preferred starting point for new Rails 7 apps.
+My preferred starting point for new Rails 8 apps, with some optional configuration for things I sometimes use.
 
-Quick Summary:
-- [Auth0](https://auth0.com/docs/quickstart/webapp/rails/01-login) authentication (optional)
-- [PostgreSQL](https://www.postgresql.org/) database configuration (optional but recommended)
-- [rspec](https://rspec.info/) for tests with [factory_bot](https://github.com/thoughtbot/factory_bot_rails) for factories instead of fixtures
+## Standard for this template
+
+These are things I generally always use:
+
 - [tailwindcss](https://tailwindcss.com/)
-- [ViewComponent](https://viewcomponent.org/) + [Lookbook](https://lookbook.build/) for creating, testing, and previewing components in your server-rendered views
 - [Turbo](https://turbo.hotwired.dev/) + [Stimulus](https://stimulus.hotwired.dev/)
-- [importmap](https://github.com/rails/importmap-rails) configuration for JavaScript (instead of webpacker)
+- [ViewComponent](https://viewcomponent.org/) + [Lookbook](https://lookbook.build/) for creating, testing, and previewing components in your server-rendered views
 - [dotenv](https://github.com/bkeepers/dotenv) for local environment variable configuration
-- Setup for your service layer of plain Ruby objects in `app/services/` (example below)
-- [Sidekiq](https://sidekiq.org/) for background jobs
-- Dry::Struct with types for immutable and validated Structs (example below)
-- `bin/cli` runner for ease of adding a Thor-based CLI instead of rake (example below)
-- `bin/ci` runner for running tests with some options (great locally and for a CI server, example below)
 - [Brakeman](https://brakemanscanner.org/) for static code analysis to help detect potential security issues
 - [bundler-audit](https://github.com/rubysec/bundler-audit) to ensure you keep your dependencies up to date
+- Setup for your service layer of plain Ruby objects in `app/services/` (example below)
+- `Dry::Struct` with types for immutable and validated Structs (example below)
+- [multi_json](https://github.com/intridea/multi_json) and [oj](https://github.com/ohler55/oj) for JSON performance improvements
+  - Note: it's recommended to use `--skip-jbuilder` with the `rails new` command with this to avoid redundancy. jbuilder is easy to use but generally poor for performance.
+- [Annotate](https://github.com/ctran/annotate_models) to add comments to models about the table schema and to routes for quick reference
+- `bin/cli` runner for ease of adding a Thor-based CLI instead of rake (example below)
+- `bin/ci` runner for running tests with some options (great locally and for a CI server, example below)
+
+## Optional
+
+These are probably app-dependent choices:
+
+- [Auth0](https://auth0.com/docs/quickstart/webapp/rails/01-login) authentication (requires a Third party subscription)
+  - Note: first-party authentication is now available as a built-in Rails generator by running `bin/rails generate authentication` after your app is created
+- [PostgreSQL](https://www.postgresql.org/) database configuration with UUID as the default primary key type
+  - Note: be sure to use `--database=postgresql` with the `rails new` command if you plan to take advantage of this
 - [lograge](https://github.com/roidrage/lograge) for single-line production environment request logging
 - [Hashdiff](https://github.com/liufengyun/hashdiff) library to compute the smallest difference between two hashes
-- [Annotate](https://github.com/ctran/annotate_models) to add comments to models about the table schema and to routes for quick reference
+- [Sidekiq](https://sidekiq.org/) for background jobs
+- [rspec](https://rspec.info/) for tests with [factory_bot](https://github.com/thoughtbot/factory_bot_rails) for factories instead of fixtures
+  - Note: factory_bot is added to the gemfile either way, but is only configured if rspec is selected for now
+
+Quick Summary:
 
 I encourage you to read below for options and explanations of each choice.
 
@@ -29,7 +43,7 @@ I encourage you to read below for options and explanations of each choice.
 ## New apps
 
 ### 1. Install Ruby
-First, install the latest version of Ruby. At the moment that is 3.3.5. You should use RVM, rbenv, or similar and not using your system-provided Ruby, as that should remain untouched in order to properly support any operating system needs.
+First, install the latest version of Ruby. At the moment that is 3.3.6. You should use RVM, rbenv, or similar and not using your system-provided Ruby, as that should remain untouched in order to properly support any operating system needs.
 
 #### Troubleshooting on macOS
 
@@ -44,7 +58,7 @@ If you use homebrew on your system and get an error referencing openssl 3 along 
 
 For example, for RVM this will do the trick:
 ```
-rvm reinstall 3.3.5 --with-openssl-dir=$(brew --prefix openssl) --with-readline-dir=$(brew --prefix readline) --with-libyaml-dir=$(brew --prefix libyaml) --disable-dtrace --disable-docs
+rvm reinstall 3.3.6 --with-openssl-dir=$(brew --prefix openssl) --with-readline-dir=$(brew --prefix readline) --with-libyaml-dir=$(brew --prefix libyaml) --disable-dtrace --disable-docs
 ```
 
 ### 2. Ensure you have the latest version of bundler
@@ -54,7 +68,7 @@ See instructions at [bundler.io](https://bundler.io)
 If you get the error `uninitialized constant Gem::Source (NameError)` see the troubleshooting section at the end of the README.
 This is your indication that you are not currently using the latest version.
 
-### 3. Install PostgreSQL
+### 3. (Optional) Install PostgreSQL
 
 You can do this however you'd like. Using [homebrew](https://brew.sh/) is very popular, but I prefer [Postgres.app](https://postgresapp.com/)
 on my Mac as described below.
@@ -78,7 +92,7 @@ it needs to install native extensions for the `pg` gem:
 6. Close and reopen your terminal or otherwise reload the shell profile
 7. Now you can run the generator with this template and `bundle install` later
 
-### 4. Install Redis
+### 4. (Optional) Install Redis
 We'll use this for background jobs using [Sidekiq](https://sidekiq.org/) and [Turbo Streams](https://turbo.hotwired.dev/handbook/streams)
 
 Using [homebrew](https://brew.sh/)
@@ -90,10 +104,22 @@ brew services start redis
 ```
 
 ### 5. Run the new app generator with these values and this template
+
 ```
 gem install rails
-rails new your_new_app_name --database=postgresql --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb
 ```
+
+With defaults only:
+```
+rails new your_new_app_name --css=tailwind --skip-jbuilder -m path/to/this/template.rb
+```
+
+With the kitchen sink:
+```
+rails new your_new_app_name --database=postgresql --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb```
+```
+
+(Other interactive options will be presented as the app is generated, as outlined below.)
 
 ## Applying to existing apps
 
@@ -108,9 +134,13 @@ bin/rails app:template LOCATION=path/to/this/template.rb
 
 # Options
 
-## Non-template flags passed to the new app generator
+The template will ask a few interactive questions on optional things to install.
+Some of them rely on particular flags already built into `rails new`, as outlined below.
+To see all options including those not covered here, run `rails new --help`
 
-### --database=postgresql 
+## Built in to `rails new`
+
+### `--database=postgresql` 
 
 You can use another database than postgres with template if you'd like. 
 I prefer it for many reasons but one in particular is it's performance with json data types using jsonb columns.
@@ -118,33 +148,50 @@ I prefer it for many reasons but one in particular is it's performance with json
 If you are using postgres answer 'Y' when asked if you want to overwrite config/database.yml to get a version
 that supports quick ENV var configuration. (Also optional if you just want the Rails default)
 
-### --skip-jbuilder 
+There will also be an interactive option for additional configuration for Postgres, as outlined below.
+
+### `--skip-jbuilder` 
 
 You can certainly keep `jbuilder` if you'd like, but I find rendering performance gets to be poor fairly quickly. 
 This template includes `multi_json` and `oj` for much more performant rendering of JSON from objects and hashes
 
-### --skip-test 
+### `--skip-test` 
 
-I'm skipping test generation because this template includes and configures `rspec` instead. 
-You can remove this flag if you want to have both available.
+You'll have the option to include and configures `rspec` instead of `minitest`, in which case you probably don't want the default `minitest`. 
+You can omit this flag if you want to use `minitest` either independently or alongside of `rspec`.
 
-### -skip-bootsnap 
+There are many posts out there to compare the two but I find this comment by an `rspec` author to be most useful: https://stackoverflow.com/a/12480737
+
+### `--skip-bootsnap`
 
 You can keep `bootsnap` if you'd like as well. I just don't find I get much value from it and occasionally the "magic" of 
 it can cause some confusion in debugging.
 
-### --css=tailwind
+### `--css=tailwind`
 
-Some features of this template expect tailwindcss so if you want to use a different CSS library you'll have to scan 
+Some features of this template expect tailwindcss so if you want to use a different CSS library you'll probably want to scan 
 through the app and remove some tailwind configuration.
 
-## Interactive options
+### `--javascript=importmaps` (default)
 
-These are asked interactively as you apply the template:
+Now default in Rails, you can use JavaScript models directly from the browser without transpiling or bundling.
+That means no more webpacker configuration pain. Your (hopefully few) JavaScript library dependencies will load in many
+smaller files in the browser, which is much more performant on the more modern HTTP/2, and no need for extra JS tooling
+or building steps. This is a web standard that is now widely adopted or easily so with a small polyfill.
 
-1. Ruby version and optional gemset
-    - Creates `.ruby-version` and optionally `.ruby-gemset` files. (The latter for use with RVM or similar)
-2. Whether or not you want to automatically commit the empty app when the generator is done (`git init` is run regardless)
+[Detailed information on the importmap-rails repo](https://github.com/rails/importmap-rails)
+
+There are a few reasons for importmaps to not work for you:
+1. If the order of execution of JavaScript really matters. Each browser can manage this as they please to adhere to the web standard so there may be some inconsistencies in execution order. This is not usually an issue.
+2. If you need to use NPM packages that include both JavaScript and CSS (non-JS imports)
+3. Some NPM packages may not support importmaps
+4. If you need advanced features like dependency graph management, scope-hoisting, bare module imports, and dead code elimination (tree-shaking). These are probably unlikely unless you are using a full single page app framework like React or Vue.
+
+### `--javascript=esbuild` for jsbuilding-rails + ESBuild (optional)
+
+If you need a JavaScript bundler for any of the reasons above and have no problem with running a node environment in production you can elect automatic ESBuild configuration.
+
+For this, just add `--javascript=esbuild` to the `rails new` command
 
 # Choices and reasoning
 
@@ -176,6 +223,7 @@ will mean the only real user data you would lose would be passwords, which you c
 email flow, though most authentication methods won't have this issue.
 3. It can be harder to troubleshoot login issues that users have given that much of the flow is outside of your directly
 observable systems.
+4. Rails now has a built-in authentication generator via `bin/rails generate authentication`
 
 ### Requiring login to your app
 
@@ -352,10 +400,14 @@ Use of [dotenv](https://github.com/bkeepers/dotenv) lets you more easily configu
 
 Note: if you add or change these you must restart your dev server.
 
-## Background jobs
+## Sidekiq for background jobs (optional)
 
-Background jobs are configured for [Sidekiq](https://sidekiq.org/) running on Redis. The 
+Background jobs can be configured for [Sidekiq](https://sidekiq.org/) on Redis. The 
 [ActiveJob](https://edgeguides.rubyonrails.org/active_job_basics.html) interface is used.
+
+Sidekiq is very stable and uses the highly performant Redis database. It's an excellent and common choice
+for background jobs in production. Rails 8 introduces Solid Queue as an alternative if you wish to use a database instead.
+Generally I would still recommend Sidekiq unless an additional Redis server is cost-prohibitive or difficult in some way.
 
 **WARNING**: add authorization checks to `config/routes.rb` for the sidekiq web UI at /jobs or remove it from the 
 production environment. This isn't configured securely by the template to start because we have no knowledge of your auth
@@ -475,15 +527,6 @@ be spending instead on writing actual features in your app.
 4. It's hard to stay performant. I'm not saying you can't keep a single page app running well and using few system resources
 but again you have to be super intentional about this and configure all sorts of lazy-loading/split packaging/whatever other
 nonsense that does not make your app special or unique in any way. Don't waste time on configuration.
-
-### importmaps
-
-Now default in Rails, you can use JavaScript models directly from the browser without transpiling or bundling.
-That means no more webpacker configuration pain. Your (hopefully few) JavaScript library dependencies will load in many
-smaller files in the browser, which is much more performant on the more modern HTTP/2, and no need for extra JS tooling
-or building steps.
-
-[Detailed information on the importmap-rails repo](https://github.com/rails/importmap-rails)
 
 ### Turbo + Stimulus
 
@@ -610,13 +653,16 @@ Now if you visit http://localhost:3000/lookbook you will a preview of your compo
 `ButtonTo`component (the latter being similar in use to the Rails `button_to` helper.) If you include Auth0 support then
 the example templates have them in use as well.
 
-## Testing
+## Testing and config for rspec (optional)
 
-I prefer and am more familiar with [rspec](https://rspec.info/) so that is what is used and configured here.
+I prefer and am more familiar with [rspec](https://rspec.info/) so that is what is used and configured here. It is slower
+than minitest and requires learning a DSL but has a number of things built in that I find helpful in large
+applications, such as shared examples and human-readable output. Some more features are enumerated here along
+with some basic comparisons between the two: https://stackoverflow.com/questions/12470601/minitest-and-rspec
 
 It also includes [factory_bot](https://github.com/thoughtbot/factory_bot_rails) to use simple factory definitions over fixtures.
 
-If you prefer to use [standard Rails tests](https://guides.rubyonrails.org/testing.html) do not include the `--skip-test`
+If you prefer to use [standard Rails tests via minitest](https://guides.rubyonrails.org/testing.html) do not include the `--skip-test`
 flag during app generation and update `bin/ci` accordingly to run those instead of `rspec`. It shouldn't hurt anything to have
 `rspec` configured but scanning `template.rb` could give you some clues on how to remove it to reduce the app bundle size.
 
@@ -709,7 +755,7 @@ Hello, world!
 
 # Extra configurations
 
-## Database
+## PostgreSQL optional configuration
 
 If you confirmed you are using PostgreSQL, your  `config/database.yml` was updated to be pre-configured for ENV var use 
 (unless you also said no when asked to overwrite the Rails-provided one.)
@@ -763,10 +809,12 @@ end
 
 You won't need to add any special params to your models when using `belongs_to` there.
 
-## Production database logs
+## Production database logs (optional)
 
-[lograge](https://github.com/roidrage/lograge) is used to ensure production request logs are searchable in a single line 
+[lograge](https://github.com/roidrage/lograge) can be used to ensure production request logs are searchable in a single line 
 format. This greatly helps searching and visibility of logs in an app with a lot of activity.
+It's almost a necessity on production environments with concurrent requests to ensure that log lines 
+from different requests aren't mixed together and nearly impossible to read.
 
 It takes something like:
 
@@ -787,6 +835,15 @@ method=GET path=/jobs/833552.json format=json controller=JobsController  action=
 ```
 
 This template configures lograge for production but you can optionally add the same configuration to your development environment as well
+
+
+## Misc. Interactive options
+
+There are a few other option as you run the generator:
+
+1. Ruby version and optional gemset
+   - Creates `.ruby-version` and optionally `.ruby-gemset` files. (The latter for use with RVM or similar)
+2. Whether or not you want to automatically commit the empty app when the generator is done (`git init` is run regardless)
 
 # Other suggestions
 
