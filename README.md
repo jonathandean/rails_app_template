@@ -116,7 +116,7 @@ rails new your_new_app_name --css=tailwind --skip-jbuilder -m path/to/this/templ
 
 With the kitchen sink:
 ```
-rails new your_new_app_name --database=postgresql --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb```
+rails new your_new_app_name --javascript=esbuild --database=postgresql --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb```
 ```
 
 (Other interactive options will be presented as the app is generated, as outlined below.)
