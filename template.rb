@@ -55,7 +55,7 @@ end
 
 gem_group :development do
   # Auto-annotate files with schema and other info
-  gem "annotate"
+  gem "annotaterb"
   # Easily preview ViewComponents
   gem "lookbook"
 end
@@ -116,10 +116,6 @@ if sidekiq
     end
   EOS
 end
-
-# Workaround to fix an issue with the annotate gem and route annotation
-copy_file 'templates/annotate_routes.rake', "lib/tasks/routes.rake"
-
 
 route <<-EOS
   if Rails.env.development?
@@ -194,11 +190,8 @@ after_bundle do
   end
 
   # Setup annotate
-  generate "annotate:install"
-  # Enable route and model annotation
-  gsub_file "lib/tasks/auto_annotate_models.rake", /'models'(\s*)=>(\s*)'false'/, "'models'                      => 'true'"
-  gsub_file "lib/tasks/auto_annotate_models.rake", /'routes'(\s*)=>(\s*)'false'/, "'routes'                      => 'true'"
-  gsub_file "lib/tasks/auto_annotate_models.rake", /'ignore_routes'(\s*)=>(\s*)nil/, "'ignore_routes'               => '(cable|rails|turbo)'"
+  run "bin/rails g annotate_rb:install"
+  run "bin/rails g annotate_rb:update_config"
 
   gsub_file "config/tailwind.config.js", /'\.\/app\/javascript\/\*\*\/\*\.js',/, <<-EOS
     './app/javascript/**/*.{js,ts}',
