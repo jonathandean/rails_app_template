@@ -21,10 +21,6 @@ if lograge
   gem "lograge"
 end
 
-# JSON performance
-gem 'multi_json'
-gem 'oj'
-
 sidekiq = yes?("Do you want to use Sidekiq and Redis for background jobs?")
 if sidekiq
   # Backgroud jobs

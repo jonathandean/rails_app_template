@@ -14,8 +14,6 @@ These are things I generally always use:
 - [bundler-audit](https://github.com/rubysec/bundler-audit) to ensure you keep your dependencies up to date
 - Setup for your service layer of plain Ruby objects in `app/services/` (example below)
 - `Dry::Struct` with types for immutable and validated Structs (example below)
-- [multi_json](https://github.com/intridea/multi_json) and [oj](https://github.com/ohler55/oj) for JSON performance improvements
-  - Note: it's recommended to use `--skip-jbuilder` with the `rails new` command with this to avoid redundancy. jbuilder is easy to use but generally poor for performance.
 - [Annotate](https://github.com/ctran/annotate_models) to add comments to models about the table schema and to routes for quick reference
 - `bin/cli` runner for ease of adding a Thor-based CLI instead of rake (example below)
 - `bin/ci` runner for running tests with some options (great locally and for a CI server, example below)
@@ -33,6 +31,8 @@ These are probably app-dependent choices:
 - [Sidekiq](https://sidekiq.org/) for background jobs
 - [rspec](https://rspec.info/) for tests with [factory_bot](https://github.com/thoughtbot/factory_bot_rails) for factories instead of fixtures
   - Note: factory_bot is added to the gemfile either way, but is only configured if rspec is selected for now
+
+[Don't forget recommended new app flags for the `rails new` command](#built-in-to-rails-new)
 
 Quick Summary:
 
@@ -153,7 +153,10 @@ There will also be an interactive option for additional configuration for Postgr
 ### `--skip-jbuilder` 
 
 You can certainly keep `jbuilder` if you'd like, but I find rendering performance gets to be poor fairly quickly. 
-This template includes `multi_json` and `oj` for much more performant rendering of JSON from objects and hashes
+You can also use [multi_json](https://github.com/intridea/multi_json) and [oj](https://github.com/ohler55/oj) together if you 
+really need to push JSON performance, as previous versions of this template included, but recent versions of Ruby have 
+greatly reduce the need. The standard `.to_json` should work for you in most cases to serialize a Hash or similar.
+
 
 ### `--skip-test` 
 
