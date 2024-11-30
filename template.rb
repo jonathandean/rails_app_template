@@ -124,17 +124,6 @@ create_file "app/components/.keep", ''
 # ViewComponent previews for lookbook
 create_file "spec/components/previews/.keep", ''
 
-# Example ViewComponents
-copy_file "templates/link_component.rb", "app/components/link_component.rb"
-copy_file "templates/link_component.html.erb", "app/components/link_component.html.erb"
-copy_file "templates/link_component_preview.rb", "spec/components/previews/link_component_preview.rb"
-copy_file "templates/css_classes_helper.rb", "app/helpers/css_classes_helper.rb"
-copy_file "templates/button_component.rb", "app/components/button_component.rb"
-copy_file "templates/button_component.html.erb", "app/components/button_component.html.erb"
-copy_file "templates/button_component_preview.rb", "spec/components/previews/button_component_preview.rb"
-copy_file "templates/button_to_component.rb", "app/components/button_to_component.rb"
-copy_file "templates/button_to_component_preview.rb", "spec/components/previews/button_to_component_preview.rb"
-
 # A place for plain old Ruby objects
 copy_file "templates/application_service.rb", 'app/services/application_service.rb'
 
