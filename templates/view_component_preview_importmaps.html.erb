@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html class="h-full bg-gray-100" style="<%= params[:lookbook][:display][:bg_color].present? ? "background-color:#{params[:lookbook][:display][:bg_color]}" : '' %>">
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+  <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
+  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+</head>
+<body>
+<div class="p-12">
+  <%= yield %>
+</div>
+</body>
+</html>

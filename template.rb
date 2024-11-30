@@ -128,7 +128,11 @@ create_file "spec/components/previews/.keep", ''
 copy_file "templates/application_service.rb", 'app/services/application_service.rb'
 
 # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
-copy_file "templates/view_component_preview.html.erb", "app/views/layouts/view_component_preview.html.erb"
+if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
+  copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
+else
+  copy_file "templates/view_component_preview_esbuild.html.erb", "app/views/layouts/view_component_preview.html.erb"
+end
 
 environment <<-'EOS'
     config.autoload_paths += %W(
