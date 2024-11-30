@@ -114,9 +114,19 @@ With defaults only:
 rails new your_new_app_name --css=tailwind --skip-jbuilder -m path/to/this/template.rb
 ```
 
-With the kitchen sink:
+For mostly local or small hobby apps needing a js bundler and working with more complex npm modules:
 ```
-rails new your_new_app_name --javascript=esbuild --database=postgresql --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb```
+rails new your_new_app_name --javascript=esbuild --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb
+```
+
+Even smaller, with importmaps
+```
+rails new your_new_app_name --javascript=importmaps --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb
+```
+
+With the kitchen sink (recommended for commercial production use):
+```
+rails new your_new_app_name --javascript=esbuild --database=postgresql --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb
 ```
 
 (Other interactive options will be presented as the app is generated, as outlined below.)
