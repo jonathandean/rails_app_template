@@ -6,9 +6,7 @@ My preferred starting point for new Rails 8 apps, with some optional configurati
 
 These are things I generally always use:
 
-- [tailwindcss](https://tailwindcss.com/)
-- [Turbo](https://turbo.hotwired.dev/) + [Stimulus](https://stimulus.hotwired.dev/)
-- [ViewComponent](https://viewcomponent.org/) + [Lookbook](https://lookbook.build/) for creating, testing, and previewing components in your server-rendered views
+- [tailwindcss](https://tailwindcss.com/) via [tailwindcss-rails](https://github.com/rails/tailwindcss-rails)
 - [dotenv](https://github.com/bkeepers/dotenv) for local environment variable configuration
 - [Brakeman](https://brakemanscanner.org/) for static code analysis to help detect potential security issues
 - [bundler-audit](https://github.com/rubysec/bundler-audit) to ensure you keep your dependencies up to date
@@ -17,6 +15,21 @@ These are things I generally always use:
 - [Annotate](https://github.com/ctran/annotate_models) to add comments to models about the table schema and to routes for quick reference
 - `bin/cli` runner for ease of adding a Thor-based CLI instead of rake (example below)
 - `bin/ci` runner for running tests with some options (great locally and for a CI server, example below)
+
+## UI Layer Choices
+
+### 1. React + Inertia.js
+- [Inertia Rails](https://inertia-rails.dev/) React without needing to build a separate API
+- [React](https://react.dev/) Use React to build reusable view components
+- [shadcn UI](https://ui.shadcn.com/) UI Component Library
+- [storybook.js](https://storybook.js.org/) for creating, testing, and previewing components in your server-rendered views
+
+### 2. ViewComponent + Hotwire
+- [Turbo](https://turbo.hotwired.dev/) HTML over the wire / websockets / single-page-app feel with server-rendered views
+- [Stimulus](https://stimulus.hotwired.dev/) for extra sprinkles of JavaScript
+- [ViewComponent](https://viewcomponent.org/) for organizing your views into reusable components
+- [Lookbook](https://lookbook.build/) for creating, testing, and previewing components in your server-rendered views
+- [DaisyUI](https://daisyui.com/) UI Component Library (TODO)
 
 ## Optional
 
@@ -29,10 +42,11 @@ These are probably app-dependent choices:
 - [lograge](https://github.com/roidrage/lograge) for single-line production environment request logging
 - [Hashdiff](https://github.com/liufengyun/hashdiff) library to compute the smallest difference between two hashes
 - [Sidekiq](https://sidekiq.org/) for background jobs
+  - Note: Rails 8 has an official database-backed version via [solid-queue](https://github.com/rails/solid_queue) that is configured by default. It is recommended to use a different database instance than your primary data store in production.
 - [rspec](https://rspec.info/) for tests with [factory_bot](https://github.com/thoughtbot/factory_bot_rails) for factories instead of fixtures
   - Note: factory_bot is added to the gemfile either way, but is only configured if rspec is selected for now
 
-[Don't forget recommended new app flags for the `rails new` command](#built-in-to-rails-new)
+[Remember to review the recommended new app flags for the `rails new` command](#built-in-to-rails-new)
 
 Quick Summary:
 
@@ -43,32 +57,14 @@ I encourage you to read below for options and explanations of each choice.
 ## New apps
 
 ### 1. Install Ruby
-First, install the latest version of Ruby. At the moment that is 3.3.6. You should use RVM, rbenv, or similar and not using your system-provided Ruby, as that should remain untouched in order to properly support any operating system needs.
+I recommend using [mise](https://mise.jdx.dev/) that will manage both your Ruby and Node versions for you.
 
-#### Troubleshooting on macOS
-
-If you use homebrew on your system and get an error referencing openssl 3 along the lines of:
-
-```
-./openssl_missing.h:195:11: warning: 'TS_VERIFY_CTS_set_certs' macro redefined [-Wmacro-redefined]
-#  define TS_VERIFY_CTS_set_certs(ctx, crts) ((ctx)->certs=(crts))
+then, run:
+```bash
+  mise install ruby@3.4.5
 ```
 
-...then it's likely you need some additional compiler flags added to your ruby compilation command in order to make sure the openssl libararies can be found.
-
-For example, for RVM this will do the trick:
-```
-rvm reinstall 3.3.6 --with-openssl-dir=$(brew --prefix openssl) --with-readline-dir=$(brew --prefix readline) --with-libyaml-dir=$(brew --prefix libyaml) --disable-dtrace --disable-docs
-```
-
-### 2. Ensure you have the latest version of bundler
-
-See instructions at [bundler.io](https://bundler.io)
-
-If you get the error `uninitialized constant Gem::Source (NameError)` see the troubleshooting section at the end of the README.
-This is your indication that you are not currently using the latest version.
-
-### 3. (Optional) Install PostgreSQL
+### 2. (Optional) Install PostgreSQL
 
 You can do this however you'd like. Using [homebrew](https://brew.sh/) is very popular, but I prefer [Postgres.app](https://postgresapp.com/)
 on my Mac as described below.
@@ -81,132 +77,85 @@ and have a simple GUI interface to start/stop the server(s). The catch is you ne
 it needs to install native extensions for the `pg` gem:
 
 1. Install the app from [Postgres.app](https://postgresapp.com/)
-2. Create a new server if there isn't already one listed for Postgres 14 (if using 15 or above just update the version number in all steps)
+2. Create a new server if there isn't already one listed for Postgres 17 (if using another version just update the version number in all steps)
 3. Click the button to initialize the database
 4. Click the button to start the server
 5. Add the following two lines to your `~/.zshrc` or `~/.bash_profile`
    ```
-   export PATH="$PATH:/Applications/Postgres.app/Contents/Versions/14/bin"
-   export CONFIGURE_ARGS="with-pg-include=/Applications/Postgres.app/Contents/Versions/14/include"
+   export PATH="$PATH:/Applications/Postgres.app/Contents/Versions/17/bin"
+   export CONFIGURE_ARGS="with-pg-include=/Applications/Postgres.app/Contents/Versions/17/include"
    ```
 6. Close and reopen your terminal or otherwise reload the shell profile
 7. Now you can run the generator with this template and `bundle install` later
 
-### 4. (Optional) Install Redis
-We'll use this for background jobs using [Sidekiq](https://sidekiq.org/) and [Turbo Streams](https://turbo.hotwired.dev/handbook/streams)
+> Be sure to add the flag `--database=postgresql` to the `rails new` command if using this option.
+
+### 3. (Optional) Install Redis
+If you want to use [Sidekiq](https://sidekiq.org/) instead of Solid, we'll need redis for ActiveJob and possibly [Turbo Streams](https://turbo.hotwired.dev/handbook/streams) if you use that as well
 
 Using [homebrew](https://brew.sh/)
+```bash
+  brew install redis
 ```
-brew install redis
-```
-```
-brew services start redis
-```
-
-### 5. Run the new app generator with these values and this template
-
-```
-gem install rails
+```bash
+  brew services start redis
 ```
 
-With defaults only:
-```
-rails new your_new_app_name --css=tailwind --skip-jbuilder -m path/to/this/template.rb
+> Be sure to add the flag `--skip-solid` to the `rails new` command if using this option.
+
+### 4. Install Rails and run the generator
+
+> Note: Remove `mise exec ruby@3.4.5 -- ` from the below if you aren't using mise.
+
+```bash
+  mise exec ruby@3.4.5 -- gem install rails
 ```
 
-For mostly local or small hobby apps needing a js bundler and working with more complex npm modules:
-```
-rails new your_new_app_name --javascript=esbuild --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb
-```
-
-Even smaller, with importmaps
-```
-rails new your_new_app_name --javascript=importmaps --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb
+Create the app but don't run `bundle install` yet. We'll do that in the next step so that the generator can ask some more interactive questions about dependencies first.
+```bash
+  mise exec ruby@3.4.5 -- rails new your_app_name_here --skip-bundle [other flags here]
 ```
 
-With the kitchen sink (recommended for commercial production use):
-```
-rails new your_new_app_name --javascript=esbuild --database=postgresql --skip-jbuilder --skip-test -skip-bootsnap --css=tailwind -m path/to/this/template.rb
+#### Example for an Inertia.js + React app:
+
+```bash
+  mise exec ruby@3.4.5 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-hotwire --skip-jbuilder --skip-system-test --skip-test --skip-bootsnap --skip-bundle
 ```
 
-(Other interactive options will be presented as the app is generated, as outlined below.)
+> `--skip-hotwire` is the important flag here for an Inertia.js app. The others can be tailored to your needs. Use `mise exec ruby@3.4.5 -- rails new --help` to see all options.
+
+
+#### Example for a Hotwire app:
+
+```bash
+  mise exec ruby@3.4.5 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-jbuilder --skip-system-test --skip-test --skip-bootsnap --skip-bundle
+```
+
+> Similar to the above but with `--skip-hotwire` removed.
+
+### 5. Set up the environment
+```bash
+  cd your_app_name_here
+  mise exec ruby@3.4.5 -- bin/rails app:template LOCATION=path/to/this/local/repo/rails_app_template/environment_config.rb
+```
+
+You'll be asked:
+1. Do you use mise?
+2. Your Ruby version
+3. If you want a Ruby gemset file (if you use rvm, for example)
+4. Your Node version (if using Inertia.js)
+
+### 6. Apply the full template and run the generators
+
+```bash
+  bin/rails app:template LOCATION=path/to/this/local/repo/rails_app_template/template.rb
+```
+
+You'll be asked a number of questions, including the optional generators listed at the top of the README (auth, sidekiq, etc).
 
 ## Applying to existing apps
 
-Depending on your app configuration this template may have some conflicts so your mileage may vary, but in general you can use the template with an existing application as well:
-
-(You might need to set up your app with postgres and `tailwindcss-rails` yourself first)
-
-```
-cd path/to/your/existing/app/
-bin/rails app:template LOCATION=path/to/this/template.rb
-```
-
-# Options
-
-The template will ask a few interactive questions on optional things to install.
-Some of them rely on particular flags already built into `rails new`, as outlined below.
-To see all options including those not covered here, run `rails new --help`
-
-## Built in to `rails new`
-
-### `--database=postgresql` 
-
-You can use another database than postgres with template if you'd like. 
-I prefer it for many reasons but one in particular is it's performance with json data types using jsonb columns.
-
-If you are using postgres answer 'Y' when asked if you want to overwrite config/database.yml to get a version
-that supports quick ENV var configuration. (Also optional if you just want the Rails default)
-
-There will also be an interactive option for additional configuration for Postgres, as outlined below.
-
-### `--skip-jbuilder` 
-
-You can certainly keep `jbuilder` if you'd like, but I find rendering performance gets to be poor fairly quickly. 
-You can also use [multi_json](https://github.com/intridea/multi_json) and [oj](https://github.com/ohler55/oj) together if you 
-really need to push JSON performance, as previous versions of this template included, but recent versions of Ruby have 
-greatly reduce the need. The standard `.to_json` should work for you in most cases to serialize a Hash or similar.
-
-
-### `--skip-test` 
-
-You'll have the option to include and configures `rspec` instead of `minitest`, in which case you probably don't want the default `minitest`. 
-You can omit this flag if you want to use `minitest` either independently or alongside of `rspec`.
-
-There are many posts out there to compare the two but I find this comment by an `rspec` author to be most useful: https://stackoverflow.com/a/12480737
-
-### `--skip-bootsnap`
-
-You can keep `bootsnap` if you'd like as well. I just don't find I get much value from it and occasionally the "magic" of 
-it can cause some confusion in debugging.
-
-### `--css=tailwind`
-
-Some features of this template expect tailwindcss so if you want to use a different CSS library you'll probably want to scan 
-through the app and remove some tailwind configuration.
-
-### `--javascript=importmaps` (default)
-
-Now default in Rails, you can use JavaScript models directly from the browser without transpiling or bundling.
-That means no more webpacker configuration pain. Your (hopefully few) JavaScript library dependencies will load in many
-smaller files in the browser, which is much more performant on the more modern HTTP/2, and no need for extra JS tooling
-or building steps. This is a web standard that is now widely adopted or easily so with a small polyfill.
-
-[Detailed information on the importmap-rails repo](https://github.com/rails/importmap-rails)
-
-There are a few reasons for importmaps to not work for you:
-1. If the order of execution of JavaScript really matters. Each browser can manage this as they please to adhere to the web standard so there may be some inconsistencies in execution order. This is not usually an issue.
-2. If you need to use NPM packages that include both JavaScript and CSS (non-JS imports)
-3. Some NPM packages may not support importmaps
-4. If you need advanced features like dependency graph management, scope-hoisting, bare module imports, and dead code elimination (tree-shaking). These are probably unlikely unless you are using a full single page app framework like React or Vue.
-
-### `--javascript=esbuild` for jsbuilding-rails + ESBuild (optional)
-
-If you need a JavaScript bundler for any of the reasons above and have no problem with running a node environment in production you can elect automatic ESBuild configuration.
-
-For this, just add `--javascript=esbuild` to the `rails new` command
-
-Recommended further reading on the options for JavaScript bundling (or not) here: https://dev.to/konnorrogers/rails-frontend-bundling-which-one-should-i-choose-9gp
+Depending on your app configuration this template may have some conflicts so your mileage may vary, but in general you can use the template with an existing application as well by only running step 6 above with `bin/rails app:template LOCATION=path/to/this/local/repo/rails_app_template/template.rb`.
 
 # Choices and reasoning
 
@@ -525,57 +474,25 @@ external_user = ExternalUser.new(name: 123.0)
 
 ## UI
 
-### No React or other single page app JS frameworks
+### Avoiding traditional SPA (Single Page Applications)
 
-I no longer use or recommend using JavaScript frameworks (like React) to build your entire view layer. For most apps and teams
-you'll be more efficient to render most of your view layer server-side and add interactivity from there for a few reasons:
-
-1. The JavasScript dependency ecosystem is a mess and very difficult to keep up to date and secure. This article is more 
-relevant than ever 3 years later: https://naildrivin5.com/blog/2019/07/10/the-frightening-state-security-around-npm-package-management.html .
-I want as few JavaScript dependencies as possible.
-2. You write all of your view layer twice - the second view layer is the API. This might be fine for very large teams that
-require and take advantage of specialized skill roles but I doubt any of those are looking to use app templates :)
-You need to write both layers, test them in different tools, coordinate their expectations. ERB works just fine to write it once!
-3. Too many choices. Frameworks like React require you to make a lot of choices: router? redux? some fancy add on to redux
-like thunks or whatever is hot these days? on and on an on... this is just time, mental energy, and maintenance you could
-be spending instead on writing actual features in your app.
-4. It's hard to stay performant. I'm not saying you can't keep a single page app running well and using few system resources
-but again you have to be super intentional about this and configure all sorts of lazy-loading/split packaging/whatever other
-nonsense that does not make your app special or unique in any way. Don't waste time on configuration.
-
-### Turbo + Stimulus
-
-"But I want my app to be modern!" 
-
-Great! You can use [Turbo](https://turbo.hotwired.dev/) in Rails to do almost any thing you'd like without actually needing
-to write any JavaScript. It'll submit forms for you using AJAX, stream updates from the server and put them right in your page
-and more. Just build the app as if it were submitting everything to the server as a full page reload and then sprinkle in
-some specially named elements and attributes and it's now a fully interactive single page app!
-
-OK so sometimes you need a little extra JavaScript to expand that drop-down menu and select all of the checkboxes on a form.
-[Stimulus](https://stimulus.hotwired.dev/) has your back with just a few lines of code and promotes nicely de-coupled 
-organization of your JavaScript code.
-
-I also recommend a quick look at [tailwindcss-stimulus-components](https://github.com/excid3/tailwindcss-stimulus-components)
-For a handful of small, dependency free, and common JS components. (Modals, Tabs, Toggles, Dropdowns, etc.)
-
-See [hotwired.dev](https://hotwired.dev/)
+I don't want to build the view layer twice, once in React and again in as a JSON API. For this reason, I favor [Inertia.js](https://inertia-rails.dev/)
+if React is to be used, or [hotwired.dev](https://hotwired.dev/) if not. They are similar in that they keep the React footprint largely to building
+client-side view templates. You get the feel of an SPA without the complexity of client-side routing, state management,
+etc.
 
 ### TailwindCSS
 
 [tailwindcss](https://tailwindcss.com/) is a popular and robust CSS library that allows for rapid and modern styling
 directly in your browser. Your app ships with only the CSS you use and nothing more.
 
-**This template adds some configuration to make sure the tailwindcss builder is looking for the classes you are using
-in all of the right places.**
+### Storybook.js when using Intertia.js with React
 
-My greatest dev hack ever may have been to buy a license to the companion [Tailwind UI](https://tailwindui.com/) examples.
-There are dozens of modern and responsive components and full page examples that even the least creative of us can use to
-make a gorgeous app very quickly.
+> TODO
 
-### ViewComponents + Lookbook
+### ViewComponents + Lookbook when using Hotwire/Turbo
 
-OK so by now you might be fearing a bunch of unstructured and difficult to test ERB templates and that is a fair concern.
+[hotwired.dev](https://hotwired.dev/) might have you fearing a bunch of unstructured and difficult to test ERB templates and that is a fair concern.
 
 [ViewComponent](https://viewcomponent.org/) provided in this template help you to create easy to test and reuse components.
 Similar in principle to the component-based structure of React but rendered from the server using Ruby and ERB.
@@ -851,23 +768,9 @@ method=GET path=/jobs/833552.json format=json controller=JobsController  action=
 
 This template configures lograge for production but you can optionally add the same configuration to your development environment as well
 
-
-## Misc. Interactive options
-
-There are a few other option as you run the generator:
-
-1. Ruby version and optional gemset
-   - Creates `.ruby-version` and optionally `.ruby-gemset` files. (The latter for use with RVM or similar)
-2. Whether or not you want to automatically commit the empty app when the generator is done (`git init` is run regardless)
-
 # Other suggestions
 
 A few things that don't require any configuration in your app (so aren't in this template) but that I've found useful.
-
-## Heroicons
-
-No great UI is complete without some beautiful icons. I love to use [heroicons](https://heroicons.com/) for UI elements
-and [Simple Icons](https://simpleicons.org/) when I needed to use a brand/logo.
 
 ## overmind
 
@@ -891,30 +794,8 @@ The generator can keep going after an issue that will cause your app to be unusa
 You can always remove new apps and start again. For existing apps be sure you have committed everything to version
 control and/or made a backup.
 
-## uninitialized constant Gem::Source (NameError)
-
-The active version of bundler is not the latest and you need to upgrade. 
-
-One quick and cheap way to do this if you're setting up a new app is:
-
-```
-cd your_new_app_name/
-bundle update --bundler
-cd ..
-rm -rf your_new_app_name/
-```
-
-If you don't have bundler at all do
-
-```
-gem install bundler
-```
-
-Then run the `rails new` command again
-
-For existing apps and other setups find instructions at [bundler.io](https://bundler.io)
-
 # TODO
+- [ ] Storybook.js
 - [ ] Capybara specs
 - [ ] optional bugsnag
 - [ ] pagy
