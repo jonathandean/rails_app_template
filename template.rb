@@ -3,17 +3,40 @@ def source_paths
   [__dir__]
 end
 
-ruby_version = ask("Which ruby version are you using? This will add it to the .ruby-version file:")
-run "echo \"#{ruby_version}\" > .ruby-version"
-ruby_gemset = ask("Enter a gemset name for .ruby-gemset - or hit enter to skip creation of this file if you aren't using RVM, don't want it, or aren't sure:")
-if ruby_gemset
-  run "echo \"#{ruby_gemset}\" > .ruby-gemset"
-end
-
 create_file ".env"
 
-# View components for portions of views with more complex logic
-gem "view_component"
+use_react = yes?("Do you want to use React via Intertia.js? If no, the Rails standard of Hotwire will be used, with the addition of ViewComponents.")
+
+if use_react
+  gem "inertia_rails"
+  gem "vite_rails"
+else
+  # View components for portions of views with more complex logic
+  gem "view_component"
+  gem_group :development do
+    # Easily preview ViewComponents
+    gem "lookbook"
+  end
+
+  route <<-EOS
+    if Rails.env.development?
+      mount Lookbook::Engine, at: "/lookbook"
+    end
+  EOS
+
+  # ViewComponents
+  create_file "app/components/.keep", ''
+  # ViewComponent previews for lookbook
+  create_file "spec/components/previews/.keep", ''
+  # Configure lookbook preview path
+  environment 'config.view_component.preview_paths << "#{Rails.root}/spec/components/previews"', env: 'development'
+  # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
+  if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
+    copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
+  else
+    copy_file "templates/view_component_preview_esbuild.html.erb", "app/views/layouts/view_component_preview.html.erb"
+  end
+end
 
 lograge = yes?("Do you want to add and configure lograge to reduce Request logging to a single line in production?")
 if lograge
@@ -52,8 +75,6 @@ end
 gem_group :development do
   # Auto-annotate files with schema and other info
   gem "annotaterb"
-  # Easily preview ViewComponents
-  gem "lookbook"
 end
 
 rspec = yes?("Do you want to use RSpec instead of minitest?")
@@ -73,9 +94,12 @@ end
 
 is_using_postgres = yes?("Are you using PostgreSQL as your database?")
 
-if is_using_postgres
+if is_using_postgres && sidekiq
   # Use a version of `config/database.yml` with ENV var support built in for anyone who wants to override defaults locally
-  template "templates/database.yml.erb", "config/database.yml"
+  template "templates/database-pg-sidekiq.yml.erb", "config/database.yml"
+elsif is_using_postgres
+  # TODO need another version of this for solid queue and env var support
+  puts "Be sure to update your database.yml file"
 end
 
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
@@ -111,45 +135,36 @@ if sidekiq
       }
     end
   EOS
+  # Use sidekiq for background jobs
+  environment 'config.active_job.queue_adapter = :sidekiq'
 end
-
-route <<-EOS
-  if Rails.env.development?
-    mount Lookbook::Engine, at: "/lookbook"
-  end
-EOS
-
-# ViewComponents
-create_file "app/components/.keep", ''
-# ViewComponent previews for lookbook
-create_file "spec/components/previews/.keep", ''
 
 # A place for plain old Ruby objects
 copy_file "templates/application_service.rb", 'app/services/application_service.rb'
 
-# A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
-if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
-  copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
+if use_react
+  environment <<-'EOS'
+    config.autoload_paths += %W(
+      #{config.root}/app/services
+      #{config.root}/lib
+    )
+  EOS
 else
-  copy_file "templates/view_component_preview_esbuild.html.erb", "app/views/layouts/view_component_preview.html.erb"
-end
-
-environment <<-'EOS'
+  environment <<-'EOS'
     config.autoload_paths += %W(
       #{config.root}/app/components
       #{config.root}/spec/components/previews
       #{config.root}/app/services
       #{config.root}/lib
     )
-EOS
+  EOS
+end
 
 if lograge
   # Enable lograge in the production environment
   environment 'config.lograge.enabled = true', env: 'production'
 end
 
-# Use sidekiq for background jobs
-environment 'config.active_job.queue_adapter = :sidekiq'
 if is_using_postgres
   # Use the sql schema for advanced postgres support
   environment 'config.active_record.schema_format = :sql'
@@ -160,8 +175,6 @@ if is_using_postgres
       end
   EOS
 end
-# Configure lookbook preview path
-environment 'config.view_component.preview_paths << "#{Rails.root}/spec/components/previews"', env: 'development'
 
 
 # Easily use Dry::Types in Dry::Structs
@@ -172,6 +185,17 @@ end
 CODE
 
 after_bundle do
+  # This needs to be first or all other run/generate commands will fail with "No such file or directory [...]config/vite.json"
+  if use_react
+    run "vite install"
+    run "npm i vite-plugin-rails"
+    generate "inertia:install --framework=react --typescript --vite --tailwind --no-interactive"
+    # https://vite-ruby.netlify.app/guide/plugins.html#rails
+    # https://github.com/ElMassimo/vite_ruby/tree/main/vite-plugin-rails
+    gsub_file "vite.config.ts", "import RubyPlugin from 'vite-plugin-ruby'", "import ViteRails from 'vite-plugin-rails'"
+    gsub_file "vite.config.ts", "RubyPlugin()", "ViteRails()"
+  end
+
   if rspec
     # Setup rspec
     generate "rspec:install"
@@ -179,40 +203,48 @@ after_bundle do
   end
 
   # Setup annotate
-  run "bin/rails g annotate_rb:install"
-  run "bin/rails g annotate_rb:update_config"
-
-  gsub_file "config/tailwind.config.js", /'\.\/app\/javascript\/\*\*\/\*\.js',/, <<-EOS
-    './app/javascript/**/*.{js,ts}',
-    './app/components/**/*.{rb,erb,haml,html,slim}',
-    './spec/components/previews/**/*.{rb,html.erb}',
-  EOS
+  generate "annotate_rb:install"
+  generate "annotate_rb:update_config"
 
   # Example pages
   generate "controller Home index"
   route "root to: 'home#index'"
 
-  nav_markup = <<-EOS
-
-  <nav class="mt-8">
-    <h2 class="font-semibold text-xl">Navigation</h2>
-    <ul>
-      <li><%= render LinkComponent.new(url: '/lookbook').with_content("Lookbook (ViewComponent Previews)") %></li>
-      <li><%= render LinkComponent.new(url: '/admin/jobs').with_content("Sidekiq") %></li>
-    </ul>
-  </nav>
+  nav_markup = if use_react
+ <<-EOS
+    <!-- TailwindCSS is loaded in Inertia.js/React pages, but not here -->
+    <nav style="margin: 2rem">
+      <h2 style="font-weight: 600; font-size: 1.5rem">Navigation</h2>
+      <ul style="margin-top: 1rem">
+        <li><%= link_to('Inertia.js example', '/inertia-example', style: 'text-decoration: underline') %></li>
+        #{sidekiq ? "<li><%= link_to('Sidekiq', '/admin/jobs', style: 'text-decoration: underline') %></li>" : ""}
+      </ul>
+    </nav>
 EOS
-  insert_into_file "app/views/home/index.html.erb", nav_markup, before: "</div>"
-
-  flash_markup = <<-EOS
-
-    <% flash.each do |key, message| %>
-      <div class="container mx-auto mt-8 px-5">
-        <p><%= key %>: <%= message %></p>
-      </div>
-    <% end %>
+   else
+ <<-EOS
+    <nav class="p-8">
+      <h2 class="font-semibold text-xl">Navigation</h2>
+      <ul class="mt-4">
+        <li><%= render LinkComponent.new(url: '/lookbook').with_content('Lookbook (ViewComponent Previews)') %></li>
+        #{sidekiq ? "<li><%= render LinkComponent.new(url: '/admin/jobs').with_content('Sidekiq') %></li>" : ""}
+      </ul>
+    </nav>
 EOS
-  insert_into_file "app/views/layouts/application.html.erb", flash_markup, after: "<body>"
+  end
+    insert_into_file "app/views/home/index.html.erb", nav_markup, before: "</div>"
+
+  unless use_react
+    flash_markup = <<-EOS
+  
+      <% flash.each do |key, message| %>
+        <div class="container mx-auto mt-8 px-5">
+          <p><%= key %>: <%= message %></p>
+        </div>
+      <% end %>
+EOS
+    insert_into_file "app/views/layouts/application.html.erb", flash_markup, after: "<body>"
+  end
 
   if is_using_postgres
     generate "migration enable_postgres_uuid_support"
@@ -354,8 +386,8 @@ EOS
     puts "cd #{app_name}"
     puts "createuser #{app_name} -s -d -P -r -h localhost -p 5432"
     puts "  (if your database host or port is different you will need to adjust the above)"
-    puts "  (if you are using Postgres.app you may need a fully qualified path if you've not added the bin dir to your path, "
-    puts"     such as: `/Applications/Postgres.app/Contents/Versions/15/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
+    puts "  (if you are using Postgres.app on Mac you may need a fully qualified path if you've not added the bin dir to your path, "
+    puts"     such as: `/Applications/Postgres.app/Contents/Versions/17/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
   end
   puts "Setup and run dev environment:"
   puts "bin/setup"
