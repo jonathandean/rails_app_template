@@ -488,7 +488,9 @@ directly in your browser. Your app ships with only the CSS you use and nothing m
 
 ### Storybook.js when using Intertia.js with React
 
-> TODO
+[Storybook.js](https://storybook.js.org/) will give you a place to preview and test your React components.
+
+The generator will add it to your `bin/dev` command and by default run it at http://localhost:6006
 
 ### ViewComponents + Lookbook when using Hotwire/Turbo
 
@@ -540,7 +542,8 @@ these components look like or help develop them. This template includes the [Loo
 and also sets it up for auto-loading and bundling any included Tailwind CSS files. 
 
 With [Lookbook](https://lookbook.build/) you can create pretty simple previews of said components for rapid development
-and a central UI library to see components already available in your app.
+and a central UI library to see components already available in your app. It is similar to Storybook.js but for
+ViewComponents (though a bit more limited in functionality).
 
 This template also includes a layout to use in our previews to include tailwind and a light gray background for them to stand out against.
 
@@ -795,7 +798,6 @@ You can always remove new apps and start again. For existing apps be sure you ha
 control and/or made a backup.
 
 # TODO
-- [ ] Storybook.js
 - [ ] Capybara specs
 - [ ] optional bugsnag
 - [ ] pagy

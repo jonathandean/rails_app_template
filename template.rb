@@ -194,6 +194,7 @@ after_bundle do
     # https://github.com/ElMassimo/vite_ruby/tree/main/vite-plugin-rails
     gsub_file "vite.config.ts", "import RubyPlugin from 'vite-plugin-ruby'", "import ViteRails from 'vite-plugin-rails'"
     gsub_file "vite.config.ts", "RubyPlugin()", "ViteRails()"
+    run "npm create storybook@latest"
   end
 
   if rspec
@@ -369,6 +370,10 @@ EOS
   </nav>
     EOS
     insert_into_file "app/views/user/show.html.erb", user_info_code, after: "<p>Find me in app/views/user/show.html.erb</p>"
+  end
+
+  if use_react
+    append_to_file "Procfile.dev", "storybook: npm run storybook\n"
   end
 
   git :init
