@@ -798,6 +798,8 @@ You can always remove new apps and start again. For existing apps be sure you ha
 control and/or made a backup.
 
 # TODO
+- [ ] Install DaisyUI when choosing the Hotwire approach
+- [ ] Install shadcn UI when choosing the React approach
 - [ ] Capybara specs
 - [ ] optional bugsnag
 - [ ] pagy
