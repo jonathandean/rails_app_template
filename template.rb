@@ -5,7 +5,7 @@ end
 
 ruby_version = ask("Which ruby version are you using? This will add it to the .ruby-version file:")
 run "echo \"#{ruby_version}\" > .ruby-version"
-ruby_gemset = ask("Enter a gemset name for .ruby-gemset or just hit enter to skip creation of this file:")
+ruby_gemset = ask("Enter a gemset name for .ruby-gemset - or hit enter to skip creation of this file if you aren't using RVM, don't want it, or aren't sure:")
 if ruby_gemset
   run "echo \"#{ruby_gemset}\" > .ruby-gemset"
 end
@@ -14,32 +14,34 @@ create_file ".env"
 
 # View components for portions of views with more complex logic
 gem "view_component"
-# Reduce Request logging to a single line in production
-gem "lograge"
 
-# JSON performance
-gem 'multi_json'
-gem 'oj'
+lograge = yes?("Do you want to add and configure lograge to reduce Request logging to a single line in production?")
+if lograge
+  # Reduce Request logging to a single line in production
+  gem "lograge"
+end
 
-# Backgroud jobs
-gem 'sidekiq'
+sidekiq = yes?("Do you want to use Sidekiq and Redis for background jobs?")
+if sidekiq
+  # Backgroud jobs
+  gem 'sidekiq'
+end
 
 # Clean config and type safe/validatable structs
 gem 'dry-configurable'
 gem 'dry-struct'
 gem 'dry-validation'
 
-# Compare hashes and arrays
-gem 'hashdiff'
+if yes?("Do you want hashdiff to compare the differences between hashes and arrays?")
+  # Compare hashes and arrays
+  gem 'hashdiff'
+end
 
 # CLI
 gem 'pastel' # styling strings for printing in the terminal
 gem 'thor' # used by `bin/cli` and it's commands
 gem 'tty-option' # presenting options in an interactive CLI
 gem 'tty-progressbar'
-
-# Static security analysis
-gem 'brakeman'
 
 add_auth0 = yes?("Do you want to include authentication via Auth0?")
 if add_auth0
@@ -49,16 +51,20 @@ end
 
 gem_group :development do
   # Auto-annotate files with schema and other info
-  gem "annotate"
+  gem "annotaterb"
   # Easily preview ViewComponents
   gem "lookbook"
 end
 
+rspec = yes?("Do you want to use RSpec instead of minitest?")
+
 gem_group :development, :test do
   # Ease of setting environment variables locally
   gem "dotenv-rails"
-  # rspec for unit tests
-  gem "rspec-rails"
+  if rspec
+    # rspec for unit tests
+    gem "rspec-rails"
+  end
   # Factories over fixtures for tests
   gem "factory_bot_rails"
   # Patch-level verification for bundler
@@ -90,22 +96,24 @@ copy_file "templates/cli/example_subcommand.rb", "app/cli/example_subcommand.rb"
 # Create a runner for your tests by running `bin/ci` (ci standing for continuous integration)
 copy_file "templates/ci.rb", "bin/ci"
 
-# Configure sidekiq and sidekiq web UI
-copy_file 'templates/sidekiq.rb', "config/initializers/sidekiq.rb"
-copy_file 'templates/routes.rake', "lib/tasks/routes.rake"
+if sidekiq
+  # Configure sidekiq and sidekiq web UI
+  copy_file 'templates/sidekiq.rb', "config/initializers/sidekiq.rb"
+  prepend_to_file "config/routes.rb", <<-EOS
 
-prepend_to_file "config/routes.rb", <<-EOS
-
-require 'sidekiq/web'
-EOS
+  require 'sidekiq/web'
+  EOS
+  route <<-EOS
+    namespace :admin do
+      mount Sidekiq::Web => '/jobs', constraints: lambda {|request|
+        # TODO authorize this
+        true
+      }
+    end
+  EOS
+end
 
 route <<-EOS
-  namespace :admin do
-    mount Sidekiq::Web => '/jobs', constraints: lambda {|request|
-      # TODO authorize this
-      true
-    }
-  end
   if Rails.env.development?
     mount Lookbook::Engine, at: "/lookbook"
   end
@@ -116,22 +124,15 @@ create_file "app/components/.keep", ''
 # ViewComponent previews for lookbook
 create_file "spec/components/previews/.keep", ''
 
-# Example ViewComponents
-copy_file "templates/link_component.rb", "app/components/link_component.rb"
-copy_file "templates/link_component.html.erb", "app/components/link_component.html.erb"
-copy_file "templates/link_component_preview.rb", "spec/components/previews/link_component_preview.rb"
-copy_file "templates/css_classes_helper.rb", "app/helpers/css_classes_helper.rb"
-copy_file "templates/button_component.rb", "app/components/button_component.rb"
-copy_file "templates/button_component.html.erb", "app/components/button_component.html.erb"
-copy_file "templates/button_component_preview.rb", "spec/components/previews/button_component_preview.rb"
-copy_file "templates/button_to_component.rb", "app/components/button_to_component.rb"
-copy_file "templates/button_to_component_preview.rb", "spec/components/previews/button_to_component_preview.rb"
-
 # A place for plain old Ruby objects
 copy_file "templates/application_service.rb", 'app/services/application_service.rb'
 
 # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
-copy_file "templates/view_component_preview.html.erb", "app/views/layouts/view_component_preview.html.erb"
+if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
+  copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
+else
+  copy_file "templates/view_component_preview_esbuild.html.erb", "app/views/layouts/view_component_preview.html.erb"
+end
 
 environment <<-'EOS'
     config.autoload_paths += %W(
@@ -142,8 +143,11 @@ environment <<-'EOS'
     )
 EOS
 
-# Enable lograge in the production environment
-environment 'config.lograge.enabled = true', env: 'production'
+if lograge
+  # Enable lograge in the production environment
+  environment 'config.lograge.enabled = true', env: 'production'
+end
+
 # Use sidekiq for background jobs
 environment 'config.active_job.queue_adapter = :sidekiq'
 if is_using_postgres
@@ -168,17 +172,15 @@ end
 CODE
 
 after_bundle do
-  # Setup rspec
-  generate "rspec:install"
-
-  insert_into_file "spec/rails_helper.rb", "\n    config.include FactoryBot::Syntax::Methods", after: "RSpec.configure do |config|"
+  if rspec
+    # Setup rspec
+    generate "rspec:install"
+    insert_into_file "spec/rails_helper.rb", "\n    config.include FactoryBot::Syntax::Methods", after: "RSpec.configure do |config|"
+  end
 
   # Setup annotate
-  generate "annotate:install"
-  # Enable route and model annotation
-  gsub_file "lib/tasks/auto_annotate_models.rake", /'models'(\s*)=>(\s*)'false'/, "'models'                      => 'true'"
-  gsub_file "lib/tasks/auto_annotate_models.rake", /'routes'(\s*)=>(\s*)'false'/, "'routes'                      => 'true'"
-  gsub_file "lib/tasks/auto_annotate_models.rake", /'ignore_routes'(\s*)=>(\s*)nil/, "'ignore_routes'               => '(cable|rails|turbo)'"
+  run "bin/rails g annotate_rb:install"
+  run "bin/rails g annotate_rb:update_config"
 
   gsub_file "config/tailwind.config.js", /'\.\/app\/javascript\/\*\*\/\*\.js',/, <<-EOS
     './app/javascript/**/*.{js,ts}',
@@ -348,14 +350,13 @@ EOS
   puts "WARNING: add authorization checks to `config/routes.rb` for the sidekiq web UI at /jobs or remove it from the production environment."
   puts ""
   puts "Next steps:"
-  puts "cd #{app_name}"
-  puts "createuser #{app_name} -s -d -P -r -h localhost -p 5432"
-  puts "  (if your database host or port is different you will need to adjust the above)"
-  puts "  (if you are using Postgres.app you may need a fully qualified path if you've not added the bin dir to your path, "
-  puts"     such as: `/Applications/Postgres.app/Contents/Versions/15/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
-  puts "bin/rake db:create"
-  puts "bin/rake db:migrate"
-  puts "overmind start -f Procfile.dev"
-  puts "  (`brew install overmind` if you don't have it yet)"
-  puts "  (or if you prefer the foreman gem: `bundle add foreman && bundle exec foreman start -f Procfile.dev`"
+  if is_using_postgres
+    puts "cd #{app_name}"
+    puts "createuser #{app_name} -s -d -P -r -h localhost -p 5432"
+    puts "  (if your database host or port is different you will need to adjust the above)"
+    puts "  (if you are using Postgres.app you may need a fully qualified path if you've not added the bin dir to your path, "
+    puts"     such as: `/Applications/Postgres.app/Contents/Versions/15/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
+  end
+  puts "Setup and run dev environment:"
+  puts "bin/setup"
 end
