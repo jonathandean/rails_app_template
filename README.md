@@ -113,13 +113,13 @@ Using [homebrew](https://brew.sh/)
 
 Create the app but don't run `bundle install` yet. We'll do that in the next step so that the generator can ask some more interactive questions about dependencies first.
 ```bash
-  mise exec ruby@3.4.5 -- rails new your_app_name_here --skip-bundle [other flags here]
+  mise exec ruby@3.4.5 -- rails new your_app_name_here --skip-bundle [other flags here] -m path/to/rails_app_template/template.rb
 ```
 
 #### Example for an Inertia.js + React app:
 
 ```bash
-  mise exec ruby@3.4.5 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-hotwire --skip-jbuilder --skip-system-test --skip-test --skip-bootsnap --skip-bundle
+  mise exec ruby@3.4.5 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-hotwire --skip-jbuilder --skip-system-test --skip-test --skip-bootsnap --skip-bundle -m path/to/rails_app_template/template.rb
 ```
 
 > `--skip-hotwire` is the important flag here for an Inertia.js app. The others can be tailored to your needs. Use `mise exec ruby@3.4.5 -- rails new --help` to see all options.
@@ -128,7 +128,7 @@ Create the app but don't run `bundle install` yet. We'll do that in the next ste
 #### Example for a Hotwire app:
 
 ```bash
-  mise exec ruby@3.4.5 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-jbuilder --skip-system-test --skip-test --skip-bootsnap --skip-bundle
+  mise exec ruby@3.4.5 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-jbuilder --skip-system-test --skip-test --skip-bootsnap --skip-bundle -m path/to/rails_app_template/template.rb
 ```
 
 > Similar to the above but with `--skip-hotwire` removed.
