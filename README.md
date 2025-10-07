@@ -153,6 +153,12 @@ You'll be asked:
 
 You'll be asked a number of questions, including the optional generators listed at the top of the README (auth, sidekiq, etc).
 
+### 7. (Optional) Install storybook.js if using Inertia.js + React
+
+```bash
+  bin/rails app:template LOCATION=path/to/this/local/repo/rails_app_template/storybook.rb
+```
+
 ## Applying to existing apps
 
 Depending on your app configuration this template may have some conflicts so your mileage may vary, but in general you can use the template with an existing application as well by only running step 6 above with `bin/rails app:template LOCATION=path/to/this/local/repo/rails_app_template/template.rb`.
