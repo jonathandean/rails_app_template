@@ -1,6 +1,8 @@
 
+# Append this template's directory to the generator's source paths instead of
+# replacing them, so Rails' own templates (e.g. kamal-secrets.tt) remain findable.
 def source_paths
-  [__dir__]
+  Array(super) + [__dir__]
 end
 
 create_file ".env"
@@ -29,7 +31,7 @@ else
   # ViewComponent previews for lookbook
   create_file "spec/components/previews/.keep", ''
   # Configure lookbook preview path
-  environment 'config.view_component.preview_paths << "#{Rails.root}/spec/components/previews"', env: 'development'
+  environment 'config.view_component.previews.paths << "#{Rails.root}/spec/components/previews"', env: 'development'
   # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
   if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
     copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
@@ -88,8 +90,9 @@ gem_group :development, :test do
   end
   # Factories over fixtures for tests
   gem "factory_bot_rails"
-  # Patch-level verification for bundler
-  gem 'bundler-audit'
+  # Patch-level verification for bundler.
+  # Rails 8.1+ ships bundler-audit in the default Gemfile, so only add it when missing.
+  gem 'bundler-audit' unless File.exist?("Gemfile") && File.read("Gemfile").include?("bundler-audit")
 end
 
 is_using_postgres = yes?("Are you using PostgreSQL as your database?")
@@ -117,8 +120,9 @@ EOS
 copy_file "templates/cli/cli.rb", "bin/cli"
 copy_file "templates/cli/example_subcommand.rb", "app/cli/example_subcommand.rb"
 
-# Create a runner for your tests by running `bin/ci` (ci standing for continuous integration)
-copy_file "templates/ci.rb", "bin/ci"
+# Create a runner for your tests by running `bin/ci` (ci standing for continuous integration).
+# Rails 8.1+ ships its own bin/ci, so force-overwrite it with this template's version.
+copy_file "templates/ci.rb", "bin/ci", force: true
 
 if sidekiq
   # Configure sidekiq and sidekiq web UI
