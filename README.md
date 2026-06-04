@@ -6,13 +6,13 @@ My preferred starting point for new Rails 8 apps, with some optional configurati
 
 These are things I generally always use:
 
-- [tailwindcss](https://tailwindcss.com/) via [tailwindcss-rails](https://github.com/rails/tailwindcss-rails)
+- [tailwindcss](https://tailwindcss.com/) via the `--css=tailwind` flag to `rails new`
 - [dotenv](https://github.com/bkeepers/dotenv) for local environment variable configuration
-- [Brakeman](https://brakemanscanner.org/) for static code analysis to help detect potential security issues
+- [Brakeman](https://brakemanscanner.org/) for static code analysis to help detect potential security issues (included in the default Gemfile as of Rails 8.1+)
 - [bundler-audit](https://github.com/rubysec/bundler-audit) to ensure you keep your dependencies up to date
 - Setup for your service layer of plain Ruby objects in `app/services/` (example below)
 - `Dry::Struct` with types for immutable and validated Structs (example below)
-- [Annotate](https://github.com/ctran/annotate_models) to add comments to models about the table schema and to routes for quick reference
+- [AnnotateRb](https://github.com/drwl/annotaterb) to add comments to models about the table schema and to routes for quick reference
 - `bin/cli` runner for ease of adding a Thor-based CLI instead of rake (example below)
 - `bin/ci` runner for running tests with some options (great locally and for a CI server, example below)
 
@@ -21,7 +21,6 @@ These are things I generally always use:
 ### 1. React + Inertia.js
 - [Inertia Rails](https://inertia-rails.dev/) React without needing to build a separate API
 - [React](https://react.dev/) Use React to build reusable view components
-- [shadcn UI](https://ui.shadcn.com/) UI Component Library
 - [storybook.js](https://storybook.js.org/) for creating, testing, and previewing components in your server-rendered views
 
 ### 2. ViewComponent + Hotwire
@@ -61,7 +60,7 @@ I recommend using [mise](https://mise.jdx.dev/) that will manage both your Ruby 
 
 then, run:
 ```bash
-  mise install ruby@3.4.5
+  mise install ruby@3.4
 ```
 
 ### 2. (Optional) Install PostgreSQL
@@ -103,32 +102,32 @@ Using [homebrew](https://brew.sh/)
 
 > Be sure to add the flag `--skip-solid` to the `rails new` command if using this option.
 
-### 4. Install Rails and run the generator
+### 4. Install Rails and create the app
 
-> Note: Remove `mise exec ruby@3.4.5 -- ` from the below if you aren't using mise.
+> Note: Remove `mise exec ruby@3.4 -- ` from the below if you aren't using mise.
 
 ```bash
-  mise exec ruby@3.4.5 -- gem install rails
+  mise exec ruby@3.4 -- gem install rails
 ```
 
-Create the app but don't run `bundle install` yet. We'll do that in the next step so that the generator can ask some more interactive questions about dependencies first.
+Create the app but don't run `bundle install` yet. We'll do that after setting up the environment so that the generator can ask some more interactive questions about dependencies first.
 ```bash
-  mise exec ruby@3.4.5 -- rails new your_app_name_here --skip-bundle [other flags here] -m path/to/rails_app_template/template.rb
+  mise exec ruby@3.4 -- rails new your_app_name_here --skip-bundle [other flags here]
 ```
 
 #### Example for an Inertia.js + React app:
 
 ```bash
-  mise exec ruby@3.4.5 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-hotwire --skip-jbuilder --skip-system-test --skip-test --skip-bootsnap --skip-bundle -m path/to/rails_app_template/template.rb
+  mise exec ruby@3.4 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-hotwire --skip-jbuilder --skip-system-test --skip-test --skip-bundle
 ```
 
-> `--skip-hotwire` is the important flag here for an Inertia.js app. The others can be tailored to your needs. Use `mise exec ruby@3.4.5 -- rails new --help` to see all options.
+> `--skip-hotwire` is the important flag here for an Inertia.js app. The others can be tailored to your needs. Use `mise exec ruby@3.4 -- rails new --help` to see all options.
 
 
 #### Example for a Hotwire app:
 
 ```bash
-  mise exec ruby@3.4.5 -- rails new your_inertia_app_name --database=postgresql --css=tailwind --skip-jbuilder --skip-system-test --skip-test --skip-bootsnap --skip-bundle -m path/to/rails_app_template/template.rb
+  mise exec ruby@3.4 -- rails new your_hotwire_app_name --database=postgresql --css=tailwind --skip-jbuilder --skip-system-test --skip-test --skip-bundle
 ```
 
 > Similar to the above but with `--skip-hotwire` removed.
@@ -136,7 +135,7 @@ Create the app but don't run `bundle install` yet. We'll do that in the next ste
 ### 5. Set up the environment
 ```bash
   cd your_app_name_here
-  mise exec ruby@3.4.5 -- bin/rails app:template LOCATION=path/to/this/local/repo/rails_app_template/environment_config.rb
+  bin/rails app:template LOCATION=path/to/this/local/repo/rails_app_template/environment_config.rb
 ```
 
 You'll be asked:
@@ -310,12 +309,12 @@ signups or logins to your app. Take their data as a default and allow the user t
 Here's a simplified example to get you started:
 
 ```
-bin/rails generation migration add_auth0_profile_to_users
+bin/rails generate migration add_auth0_profile_to_users
 ```
 
 ```ruby
 # db/migrate/[timestamp]_add_auth0_profile_to_users.rb
-class AddAuth0ProfileToUsers < ActiveRecord::Migration[7.0]
+class AddAuth0ProfileToUsers < ActiveRecord::Migration[8.0]
    def change
       add_column :users, :auth0_profile, :jsonb
    end
@@ -323,12 +322,12 @@ end
 ```
 
 ```
-bin/rails generation migration add_email_to_users
+bin/rails generate migration add_email_to_users
 ```
 
 ```ruby
 # db/migrate/[timestamp]_add_email_to_users.rb
-class AddEmailToUsers < ActiveRecord::Migration[7.0]
+class AddEmailToUsers < ActiveRecord::Migration[8.0]
    def change
       add_column :users, :email, :string, null: true
    end
@@ -366,7 +365,7 @@ is fully optional in your app.
 ## Environment variables
 
 Use of [dotenv](https://github.com/bkeepers/dotenv) lets you more easily configure local environment variables in
-`.env` or `.env.development`/`.env.test` files. These are excluded from git by the template.
+`.env` or `.env.development`/`.env.test` files. These are excluded from git by the default Rails `.gitignore` (`/.env*`).
 
 Note: if you add or change these you must restart your dev server.
 
@@ -427,7 +426,7 @@ Rails Models should define your database models but not the logic for how they a
 Rails Controllers should essentially just handle taking parameters to send to your service layer, handle some routing logic,
 and set up the response to the user.
 
-This is a large topic on it's own so rather than explain it all here I recommend starting with this talk from
+This is a large topic on its own so rather than explain it all here I recommend starting with this talk from
 Dave Copeland: https://www.youtube.com/watch?v=CRboMkFdZfg&ab_channel=RubyCentral
 
 ### Non-model objects/Structs
@@ -447,7 +446,7 @@ Example use:
 ```ruby
 # app/models/external_user.rb
 class ExternalUser < Dry::Struct
-  transform_keys(&:to_sum)
+  transform_keys(&:to_sym)
   
   attribute :name, Types::String.optional
   attribute :email, Types::String
@@ -492,7 +491,7 @@ etc.
 [tailwindcss](https://tailwindcss.com/) is a popular and robust CSS library that allows for rapid and modern styling
 directly in your browser. Your app ships with only the CSS you use and nothing more.
 
-### Storybook.js when using Intertia.js with React
+### Storybook.js when using Inertia.js with React
 
 [Storybook.js](https://storybook.js.org/) will give you a place to preview and test your React components.
 
@@ -640,20 +639,20 @@ You may sometimes need to write some task to be executed by the command line. Ra
 to use [thor](http://whatisthor.com/) for powerful options parsing quick documentation.
 
 Included is a `bin/cli` runner to make it super easy to create your app's command line interface. Just add subcommands in
-`templates/cli/name_of_your_subcommand.rb` following the example below, which for convenience is also added by the template 
+`app/cli/name_of_your_subcommand.rb` following the example below, which for convenience is also added by the template 
 for you to edit/replace/always have on hand as an example:
 
 ```ruby
 # app/cli/example_subcommand.rb
 class ExampleSubcommand < Thor
-   desc "example", "Show an example command"
+   desc "hello", "Show an example command"
    long_desc <<~LONGDESC
     Show an example command
         
     Pass --verbose to print detailed information as the command runs.
    LONGDESC
    option :verbose, type: :boolean, default: false
-   def example
+   def hello
       verbose = options[:verbose]
       puts "Hello, world!#{verbose ? ' Verbose version.': ''}"
    end
@@ -725,7 +724,7 @@ competitors to guess how many orders you have processed so far.)
 To use them just use the standard ActiveRecord params, for example passing it to `create_table`:
 
 ``` ruby
-class CreateUsers < ActiveRecord::Migration[7.0]
+class CreateUsers < ActiveRecord::Migration[8.0]
   def change
     create_table :users, id: :uuid do |t|
       t.string :auth0_id, null: false
@@ -735,10 +734,10 @@ class CreateUsers < ActiveRecord::Migration[7.0]
 end
 ```
 
-And then later in another model as a forgeign key:
+And then later in another model as a foreign key:
 
 ```ruby
-class CreateBookmarks < ActiveRecord::Migration[7.0]
+class CreateBookmarks < ActiveRecord::Migration[8.0]
   def change
     create_table :bookmarks, id: :uuid do |t|
       t.belongs_to :user, foreign_key: true, type: :uuid
@@ -750,7 +749,7 @@ end
 
 You won't need to add any special params to your models when using `belongs_to` there.
 
-## Production database logs (optional)
+## Production request logs (optional)
 
 [lograge](https://github.com/roidrage/lograge) can be used to ensure production request logs are searchable in a single line 
 format. This greatly helps searching and visibility of logs in an app with a lot of activity.
@@ -783,7 +782,7 @@ A few things that don't require any configuration in your app (so aren't in this
 
 ## overmind
 
-You'll need two processes to boot the app for development that are defined in `Procfile.dev`. You can use the popular 
+Rails uses a `Procfile.dev` (run via `bin/dev`) to manage development processes. You can use the popular 
 [Foreman](https://github.com/ddollar/foreman) gem for this but my preference is to use the more powerful
 [overmind](https://github.com/DarthSim/overmind). 
 
