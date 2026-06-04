@@ -49,10 +49,22 @@ class TemplateHarness
   # Template evaluation
   # ---------------------------------------------------------------------------
 
-  def apply(template_path)
+  # Evaluates the template in an isolated empty working directory so that any
+  # filesystem checks the template performs (e.g. reading a generated app's
+  # Gemfile) are deterministic and don't pick up files from the project root.
+  #
+  # +seed_files+ optionally seeds files into that working dir before evaluation,
+  # e.g. apply("template.rb", seed_files: { "Gemfile" => "gem 'bundler-audit'" }).
+  def apply(template_path, seed_files: {})
     content = File.read(template_path)
-    instance_eval(content, template_path)
-    run_after_bundle_blocks
+    require "tmpdir"
+    Dir.mktmpdir("template_harness_") do |dir|
+      Dir.chdir(dir) do
+        seed_files.each { |name, body| File.write(name, body) }
+        instance_eval(content, template_path)
+        run_after_bundle_blocks
+      end
+    end
   end
 
   # ---------------------------------------------------------------------------

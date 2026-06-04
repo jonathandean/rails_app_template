@@ -179,8 +179,9 @@ RSpec.describe "template.rb" do
         expect(h.has_created_file?("spec/components/previews/.keep")).to be true
       end
 
-      it "configures view_component preview_paths in development" do
-        expect(h.has_environment?("view_component.preview_paths", env: "development")).to be true
+      it "configures view_component previews.paths in development" do
+        # Rails 8.1 / ViewComponent 4.x use previews.paths (preview_paths returns nil)
+        expect(h.has_environment?("view_component.previews.paths", env: "development")).to be true
       end
 
       it "adds autoload_paths including components and previews" do
@@ -598,6 +599,23 @@ RSpec.describe "template.rb" do
 
     it "places rspec-rails in development & test group when rspec enabled" do
       expect(h.gem_in_group?("rspec-rails", :development, :test)).to be true
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # bundler-audit duplicate guard (Rails 8.1 ships it by default)
+  # ---------------------------------------------------------------------------
+  describe "bundler-audit guard" do
+    it "adds bundler-audit when the Gemfile does not already include it" do
+      harness = TemplateHarness.new(base_answers)
+      harness.apply(template_path, seed_files: { "Gemfile" => "source 'https://rubygems.org'\n" })
+      expect(harness).to have_gem("bundler-audit")
+    end
+
+    it "does NOT add bundler-audit when the Gemfile already includes it" do
+      harness = TemplateHarness.new(base_answers)
+      harness.apply(template_path, seed_files: { "Gemfile" => "gem 'bundler-audit', require: false\n" })
+      expect(harness.has_gem?("bundler-audit")).to be false
     end
   end
 

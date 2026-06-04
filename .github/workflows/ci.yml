@@ -20,3 +20,30 @@ jobs:
 
       - name: Run unit specs
         run: bundle exec rspec
+
+  integration:
+    name: Integration (real rails new, sqlite combos)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Rails
+        run: gem install rails -v "~> 8.1"
+
+      # Runs the two sqlite combos (Hotwire + React). PostgreSQL combos are
+      # skipped automatically since pg_config is not installed here.
+      - name: Run integration specs
+        env:
+          RUN_INTEGRATION: "1"
+        run: bundle exec rspec spec/integration/ -e minimal

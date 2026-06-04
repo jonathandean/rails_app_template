@@ -1,146 +1,158 @@
 # Integration tests that actually run `rails new` with the template and verify
-# the resulting application. These are slow (bundle install + generators per
-# combo) and require network access, so they are opt-in.
+# the resulting application generates and boots. These are slow (bundle install
+# + generators per combo) and require network access, so they are opt-in.
 #
 # Run with:
 #   RUN_INTEGRATION=1 bundle exec rspec spec/integration/
 #
-# Individual combos:
-#   RUN_INTEGRATION=1 bundle exec rspec spec/integration/ -e "hotwire minimal"
+# A single combo:
+#   RUN_INTEGRATION=1 bundle exec rspec spec/integration/ -e "Hotwire minimal"
+#
+# PostgreSQL combos additionally require `pg_config` (libpq) to build the pg
+# gem; they are skipped automatically when it is unavailable.
 
 require "open3"
 require "tmpdir"
 require "fileutils"
 require "timeout"
+require "bundler"
 
 RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ? "Set RUN_INTEGRATION=1 to run" : false) do
   let(:template_path) { File.expand_path("../../template.rb", __dir__) }
-  let(:timeout_seconds) { Integer(ENV.fetch("INTEGRATION_TIMEOUT", 600)) }
+  let(:timeout_seconds) { Integer(ENV.fetch("INTEGRATION_TIMEOUT", 900)) }
 
-  # Creates a temp dir, runs `rails new` with piped answers, yields the app
-  # path, then cleans up.
+  def pg_available?
+    system("which pg_config > /dev/null 2>&1")
+  end
+
+  # Runs `rails new <name> ... -m template.rb` with the given piped answers,
+  # then yields (app_path, stdout, stderr, status). Cleans up afterwards.
   def generate_app(name, rails_flags:, answers:)
     dir = Dir.mktmpdir("rails_template_test_")
     input = answers.join("\n") + "\n"
-
     cmd = "rails new #{name} #{rails_flags} --force -m #{template_path}"
-    stdout, stderr, status = nil
-    Timeout.timeout(timeout_seconds) do
-      stdout, stderr, status = Open3.capture3(cmd, stdin_data: input, chdir: dir)
+
+    # Run outside this suite's bundler context so the generated app uses its own
+    # Gemfile (otherwise BUNDLE_GEMFILE points at this repo's rspec-only Gemfile).
+    stdout = stderr = status = nil
+    Bundler.with_unbundled_env do
+      Timeout.timeout(timeout_seconds) do
+        stdout, stderr, status = Open3.capture3(cmd, stdin_data: input, chdir: dir)
+      end
     end
 
-    app_path = File.join(dir, name)
-    yield app_path, stdout, stderr, status
+    yield File.join(dir, name), stdout, stderr, status
   ensure
     FileUtils.rm_rf(dir) if dir
   end
 
-  # Checks whether `bin/rails runner "puts 'ok'"` succeeds — a lightweight
-  # "does it boot?" sanity check.
+  # `bin/rails runner` succeeds → the app boots without load errors.
   def app_boots?(app_path)
-    cmd = "bin/rails runner \"puts 'BOOT_OK'\""
-    stdout, _stderr, status = Open3.capture3(cmd, chdir: app_path)
+    stdout = status = nil
+    Bundler.with_unbundled_env do
+      stdout, _stderr, status = Open3.capture3("bin/rails runner \"puts 'BOOT_OK'\"", chdir: app_path)
+    end
     status.success? && stdout.include?("BOOT_OK")
   end
 
-  # Checks whether zeitwerk can resolve all autoloaded constants.
-  def zeitwerk_check?(app_path)
-    _stdout, _stderr, status = Open3.capture3("bin/rails zeitwerk:check", chdir: app_path)
+  # zeitwerk:check passes → all autoloaded constants resolve.
+  def zeitwerk_ok?(app_path)
+    status = nil
+    Bundler.with_unbundled_env do
+      _stdout, _stderr, status = Open3.capture3("bin/rails zeitwerk:check", chdir: app_path)
+    end
     status.success?
   end
 
-  # ---------------------------------------------------------------------------
-  # Combo: React minimal (no postgres, no auth0, no sidekiq)
-  # ---------------------------------------------------------------------------
-  describe "React minimal (no PG, no Auth0, no Sidekiq)" do
-    # Answers in prompt order:
-    #   1. React? y
-    #   2. lograge? n
-    #   3. sidekiq? n
-    #   4. hashdiff? n
-    #   5. auth0? n
-    #   6. rspec? n
-    #   7. postgres? n
-    #   8. commit? n
-    let(:answers) { %w[y n n n n n n n] }
-    let(:rails_flags) { "--css=tailwind --skip-system-test --skip-hotwire --skip-jbuilder" }
+  shared_examples "a generated app" do |gemfile_includes:, gemfile_excludes:, files_present:|
+    it "generates, boots, and passes zeitwerk:check" do
+      generate_app(app_name, rails_flags: rails_flags, answers: answers) do |app, stdout, stderr, status|
+        aggregate_failures do
+          expect(status.exitstatus).to eq(0),
+            "rails new exited #{status.exitstatus}\n--- STDOUT ---\n#{stdout[-2000..]}\n--- STDERR ---\n#{stderr[-2000..]}"
 
-    it "generates without fatal error" do
-      pending "Known issue: template may fail on Rails 8.1 due to kamal-secrets.tt source_paths conflict"
-      generate_app("react_minimal", rails_flags: rails_flags, answers: answers) do |app, _out, _err, status|
-        expect(status.exitstatus).to eq(0), "rails new exited #{status.exitstatus}"
-        expect(File.directory?(app)).to be true
-        expect(File.exist?(File.join(app, "Gemfile"))).to be true
+          gemfile = File.read(File.join(app, "Gemfile"))
+          gemfile_includes.each { |g| expect(gemfile).to include(g) }
+          gemfile_excludes.each { |g| expect(gemfile).not_to include(g) }
+
+          files_present.each { |f| expect(File.exist?(File.join(app, f))).to be(true), "expected #{f} to exist" }
+
+          # Default Gemfile already ships bundler-audit; ensure no duplicate line.
+          expect(gemfile.scan(/^\s*gem ["']bundler-audit["']/).size).to be <= 1
+
+          expect(app_boots?(app)).to be(true), "app failed to boot via bin/rails runner"
+          expect(zeitwerk_ok?(app)).to be(true), "zeitwerk:check failed"
+        end
       end
     end
   end
 
   # ---------------------------------------------------------------------------
-  # Combo: Hotwire minimal (importmaps, no auth0, no sidekiq, no postgres)
+  # Hotwire minimal: importmaps, RSpec, sqlite (no Auth0/Sidekiq/PG)
   # ---------------------------------------------------------------------------
-  describe "Hotwire minimal (importmaps, no Auth0, no Sidekiq, no PG)" do
-    # Answers:
-    #   1. React? n
-    #   2. importmaps? y
-    #   3. lograge? n
-    #   4. sidekiq? n
-    #   5. hashdiff? n
-    #   6. auth0? n
-    #   7. rspec? y
-    #   8. postgres? n
-    #   9. commit? n
+  describe "Hotwire minimal (importmaps, RSpec, sqlite)" do
+    # react? n | importmaps? y | lograge? n | sidekiq? n | hashdiff? n |
+    # auth0? n | rspec? y | postgres? n | commit? n
+    let(:app_name) { "hotwire_minimal" }
     let(:answers) { %w[n y n n n n y n n] }
     let(:rails_flags) { "--css=tailwind --skip-system-test" }
 
-    it "generates without fatal error" do
-      pending "Known issue: config.view_component.preview_paths << raises NoMethodError on nil (template.rb:32)"
-      generate_app("hotwire_minimal", rails_flags: rails_flags, answers: answers) do |app, _out, _err, status|
-        expect(status.exitstatus).to eq(0), "rails new exited #{status.exitstatus}"
-      end
-    end
+    include_examples "a generated app",
+      gemfile_includes: %w[view_component lookbook rspec-rails dotenv-rails],
+      gemfile_excludes: %w[inertia_rails vite_rails sidekiq omniauth-auth0],
+      files_present: ["app/components/.keep", "spec/components/previews/.keep", "bin/cli", "bin/ci"]
   end
 
   # ---------------------------------------------------------------------------
-  # Combo: Hotwire + Postgres + Sidekiq + Auth0 + Guest + RSpec
+  # React minimal: Inertia + Vite, minitest, sqlite
+  # ---------------------------------------------------------------------------
+  describe "React minimal (Inertia/Vite, sqlite)" do
+    # react? y | lograge? n | sidekiq? n | hashdiff? n | auth0? n |
+    # rspec? n | postgres? n | commit? n   (no importmaps prompt for React)
+    let(:app_name) { "react_minimal" }
+    let(:answers) { %w[y n n n n n n n] }
+    let(:rails_flags) { "--css=tailwind --skip-system-test --skip-hotwire --skip-jbuilder" }
+
+    include_examples "a generated app",
+      gemfile_includes: %w[inertia_rails vite_rails dotenv-rails],
+      gemfile_excludes: %w[view_component lookbook sidekiq omniauth-auth0],
+      files_present: ["bin/cli", "bin/ci", "vite.config.ts"]
+  end
+
+  # ---------------------------------------------------------------------------
+  # Hotwire full: PG + Sidekiq + Auth0 + Guest + RSpec + lograge + hashdiff
   # ---------------------------------------------------------------------------
   describe "Hotwire full (PG + Sidekiq + Auth0 + Guest + RSpec)" do
-    # Answers:
-    #   1. React? n
-    #   2. importmaps? y
-    #   3. lograge? y
-    #   4. sidekiq? y
-    #   5. hashdiff? y
-    #   6. auth0? y
-    #   7. rspec? y
-    #   8. postgres? y
-    #   9. Auth0 Client ID
-    #  10. Auth0 Client Secret
-    #  11. Auth0 Domain
-    #  12. guest? y
-    #  13. commit? n
+    before { skip "requires pg_config (libpq) to build the pg gem" unless pg_available? }
+
+    # react? n | importmaps? y | lograge? y | sidekiq? y | hashdiff? y |
+    # auth0? y | rspec? y | postgres? y | <cid> | <secret> | <domain> |
+    # guest? y | commit? n
+    let(:app_name) { "hotwire_full" }
     let(:answers) { %w[n y y y y y y y test-cid test-csec test.auth0.com y n] }
     let(:rails_flags) { "--database=postgresql --css=tailwind --skip-system-test" }
 
-    it "generates without fatal error" do
-      pending "Known issue: config.view_component.preview_paths << raises NoMethodError; also requires pg_config for pg gem"
-      generate_app("hotwire_full", rails_flags: rails_flags, answers: answers) do |app, _out, _err, status|
-        expect(status.exitstatus).to eq(0), "rails new exited #{status.exitstatus}"
-      end
-    end
+    include_examples "a generated app",
+      gemfile_includes: %w[view_component sidekiq omniauth-auth0 lograge hashdiff rspec-rails],
+      gemfile_excludes: %w[inertia_rails vite_rails],
+      files_present: ["config/initializers/sidekiq.rb", "app/models/user.rb", "bin/ci"]
   end
 
   # ---------------------------------------------------------------------------
-  # Combo: React + Postgres + RSpec (no Auth0, no Sidekiq)
+  # React + Postgres + RSpec (no Auth0/Sidekiq)
   # ---------------------------------------------------------------------------
   describe "React + Postgres + RSpec" do
+    before { skip "requires pg_config (libpq) to build the pg gem" unless pg_available? }
+
+    # react? y | lograge? n | sidekiq? n | hashdiff? n | auth0? n |
+    # rspec? y | postgres? y | commit? n
+    let(:app_name) { "react_pg_rspec" }
     let(:answers) { %w[y n n n n y y n] }
     let(:rails_flags) { "--database=postgresql --css=tailwind --skip-system-test --skip-hotwire --skip-jbuilder" }
 
-    it "generates without fatal error" do
-      pending "Requires pg_config for pg gem native extension; also kamal-secrets.tt source_paths conflict"
-      generate_app("react_pg_rspec", rails_flags: rails_flags, answers: answers) do |app, _out, _err, status|
-        expect(status.exitstatus).to eq(0), "rails new exited #{status.exitstatus}"
-      end
-    end
+    include_examples "a generated app",
+      gemfile_includes: %w[inertia_rails vite_rails rspec-rails],
+      gemfile_excludes: %w[view_component sidekiq omniauth-auth0],
+      files_present: ["bin/cli", "bin/ci", "vite.config.ts"]
   end
 end
