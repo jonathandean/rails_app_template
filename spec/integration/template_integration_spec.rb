@@ -11,6 +11,7 @@
 require "open3"
 require "tmpdir"
 require "fileutils"
+require "timeout"
 
 RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ? "Set RUN_INTEGRATION=1 to run" : false) do
   let(:template_path) { File.expand_path("../../template.rb", __dir__) }
