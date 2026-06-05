@@ -7,7 +7,7 @@ end
 
 create_file ".env"
 
-use_react = yes?("Do you want to use React via Intertia.js? If no, the Rails standard of Hotwire will be used, with the addition of ViewComponents.")
+use_react = yes?("Do you want to use React via Inertia.js? If no, the Rails standard of Hotwire will be used, with the addition of ViewComponents.")
 
 if use_react
   gem "inertia_rails"
