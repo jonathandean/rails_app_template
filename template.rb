@@ -105,6 +105,11 @@ elsif is_using_postgres
   puts "Be sure to update your database.yml file"
 end
 
+add_ruby_native = yes?("Do you want to add Ruby Native for iOS and Android app support? (https://rubynative.com)")
+if add_ruby_native
+  gem "ruby_native"
+end
+
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
 append_to_file ".gitignore", <<-EOS
 
@@ -373,6 +378,61 @@ EOS
   </nav>
     EOS
     insert_into_file "app/views/user/show.html.erb", user_info_code, after: "<p>Find me in app/views/user/show.html.erb</p>"
+  end
+
+  if add_ruby_native
+    generate "ruby_native:install"
+
+    if use_react
+      run "npm install @ruby-native/react"
+      insert_into_file "app/controllers/application_controller.rb",
+        "\n  include RubyNative::InertiaSupport",
+        after: "ActionController::Base"
+    end
+
+    # Build tabs config customized to the demo pages
+    ruby_native_yml = "tabs:\n"
+    ruby_native_yml += "  - title: Home\n    path: /\n    icon: house\n"
+    if use_react
+      ruby_native_yml += "  - title: Example\n    path: /inertia-example\n    icon: sparkles\n"
+    end
+    if add_auth0
+      ruby_native_yml += "  - title: Profile\n    path: /user/show\n    icon: person\n"
+    end
+    create_file "config/ruby_native.yml", ruby_native_yml, force: true
+
+    # Layout: add viewport-fit=cover for safe area CSS variables
+    gsub_file "app/views/layouts/application.html.erb",
+      "width=device-width,initial-scale=1",
+      "width=device-width,initial-scale=1,viewport-fit=cover"
+
+    # Layout: add Ruby Native stylesheet
+    insert_into_file "app/views/layouts/application.html.erb",
+      "\n    <%= stylesheet_link_tag :ruby_native %>",
+      after: "<%= csp_meta_tag %>"
+
+    # Layout: add native tab bar
+    insert_into_file "app/views/layouts/application.html.erb",
+      "    <%= native_tabs_tag %>\n",
+      before: "  </body>"
+
+    unless use_react
+      # Hotwire: add native-inset class to the main content wrapper for safe area spacing
+      gsub_file "app/views/layouts/application.html.erb",
+        '<main class="',
+        '<main class="native-inset '
+    end
+
+    # Home page: add native navbar and conditionally hide web heading
+    ruby_native_heading = <<~ERB
+      <%= native_navbar_tag("Home") %>
+      <% unless native_app? %>
+      <h1>Home#index</h1>
+      <% end %>
+    ERB
+    gsub_file "app/views/home/index.html.erb",
+      "<h1>Home#index</h1>",
+      ruby_native_heading.strip
   end
 
   git :init

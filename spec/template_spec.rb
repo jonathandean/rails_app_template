@@ -13,6 +13,7 @@ RSpec.describe "template.rb" do
       auth0: false,
       rspec: false,
       postgres: false,
+      ruby_native: false,
       git_commit: false,
     }
   end
@@ -554,6 +555,146 @@ RSpec.describe "template.rb" do
   end
 
   # ---------------------------------------------------------------------------
+  # Ruby Native option
+  # ---------------------------------------------------------------------------
+  describe "Ruby Native option" do
+    context "when enabled with Hotwire" do
+      subject(:h) { run_template(ruby_native: true, react: false, importmaps: true) }
+
+      it "adds ruby_native gem" do
+        expect(h).to have_gem("ruby_native")
+      end
+
+      it "runs ruby_native:install generator" do
+        expect(h.has_generator?("ruby_native:install")).to be true
+      end
+
+      it "creates config/ruby_native.yml with Home tab" do
+        yml_file = h.actions_of(:create_file).find { |a| a.args.first == "config/ruby_native.yml" }
+        expect(yml_file).not_to be_nil
+        expect(yml_file.args[1]).to include("title: Home")
+        expect(yml_file.args[1]).to include("path: /")
+        expect(yml_file.args[1]).to include("icon: house")
+      end
+
+      it "does NOT include Inertia example tab" do
+        yml_file = h.actions_of(:create_file).find { |a| a.args.first == "config/ruby_native.yml" }
+        expect(yml_file.args[1]).not_to include("inertia-example")
+      end
+
+      it "adds viewport-fit=cover to layout" do
+        gsubs = h.gsubbed_files.select { |a| a.args.first.include?("application.html.erb") }
+        expect(gsubs.any? { |a| a.args[2].to_s.include?("viewport-fit=cover") }).to be true
+      end
+
+      it "adds Ruby Native stylesheet to layout" do
+        inserts = h.inserted_files.select { |a| a.args.first.include?("application.html.erb") }
+        expect(inserts.any? { |a| a.args[1].to_s.include?("stylesheet_link_tag :ruby_native") }).to be true
+      end
+
+      it "adds native_tabs_tag to layout" do
+        inserts = h.inserted_files.select { |a| a.args.first.include?("application.html.erb") }
+        expect(inserts.any? { |a| a.args[1].to_s.include?("native_tabs_tag") }).to be true
+      end
+
+      it "adds native-inset class to main content wrapper" do
+        gsubs = h.gsubbed_files.select { |a| a.args.first.include?("application.html.erb") }
+        expect(gsubs.any? { |a| a.args[2].to_s.include?("native-inset") }).to be true
+      end
+
+      it "adds native_navbar_tag to home page" do
+        gsubs = h.gsubbed_files.select { |a| a.args.first.include?("home/index") }
+        expect(gsubs.any? { |a| a.args[2].to_s.include?('native_navbar_tag("Home")') }).to be true
+      end
+
+      it "conditionally hides web heading with native_app?" do
+        gsubs = h.gsubbed_files.select { |a| a.args.first.include?("home/index") }
+        expect(gsubs.any? { |a| a.args[2].to_s.include?("native_app?") }).to be true
+      end
+
+      it "does NOT install @ruby-native/react npm package" do
+        expect(h.has_command?("npm install @ruby-native/react")).to be false
+      end
+
+      it "does NOT add InertiaSupport concern" do
+        inertia_insert = h.inserted_files.find { |a| a.args[1].to_s.include?("InertiaSupport") }
+        expect(inertia_insert).to be_nil
+      end
+    end
+
+    context "when enabled with React" do
+      subject(:h) { run_template(ruby_native: true, react: true) }
+
+      it "adds ruby_native gem" do
+        expect(h).to have_gem("ruby_native")
+      end
+
+      it "installs @ruby-native/react npm package" do
+        expect(h.has_command?("npm install @ruby-native/react")).to be true
+      end
+
+      it "adds InertiaSupport concern to ApplicationController" do
+        inertia_insert = h.inserted_files.find do |a|
+          a.args.first.to_s.include?("application_controller.rb") &&
+            a.args[1].to_s.include?("RubyNative::InertiaSupport")
+        end
+        expect(inertia_insert).not_to be_nil
+      end
+
+      it "includes Inertia example tab in config" do
+        yml_file = h.actions_of(:create_file).find { |a| a.args.first == "config/ruby_native.yml" }
+        expect(yml_file.args[1]).to include("title: Example")
+        expect(yml_file.args[1]).to include("path: /inertia-example")
+        expect(yml_file.args[1]).to include("icon: sparkles")
+      end
+
+      it "does NOT add native-inset class (React uses its own layout)" do
+        gsubs = h.gsubbed_files.select { |a| a.args.first.include?("application.html.erb") }
+        expect(gsubs.none? { |a| a.args[2].to_s.include?("native-inset") }).to be true
+      end
+    end
+
+    context "when enabled with Auth0" do
+      subject(:h) do
+        run_template(
+          ruby_native: true,
+          react: false,
+          importmaps: true,
+          auth0: true,
+          auth0_client_id: "cid",
+          auth0_client_secret: "csec",
+          auth0_domain: "d.auth0.com",
+          guest: false,
+        )
+      end
+
+      it "includes Profile tab in config" do
+        yml_file = h.actions_of(:create_file).find { |a| a.args.first == "config/ruby_native.yml" }
+        expect(yml_file.args[1]).to include("title: Profile")
+        expect(yml_file.args[1]).to include("path: /user/show")
+        expect(yml_file.args[1]).to include("icon: person")
+      end
+    end
+
+    context "when disabled" do
+      subject(:h) { run_template(ruby_native: false) }
+
+      it "does NOT add ruby_native gem" do
+        expect(h).not_to have_gem("ruby_native")
+      end
+
+      it "does NOT run ruby_native:install generator" do
+        expect(h.has_generator?("ruby_native:install")).to be false
+      end
+
+      it "does NOT create config/ruby_native.yml" do
+        yml_file = h.actions_of(:create_file).find { |a| a.args.first == "config/ruby_native.yml" }
+        expect(yml_file).to be_nil
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Git commit option
   # ---------------------------------------------------------------------------
   describe "git commit option" do
@@ -636,6 +777,7 @@ RSpec.describe "template.rb" do
         guest: true,
         rspec: true,
         postgres: true,
+        ruby_native: false,
         git_commit: false,
       )
     end
@@ -691,6 +833,7 @@ RSpec.describe "template.rb" do
         auth0: false,
         rspec: false,
         postgres: false,
+        ruby_native: false,
         git_commit: false,
       )
     end

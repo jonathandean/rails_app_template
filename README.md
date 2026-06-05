@@ -44,6 +44,10 @@ These are probably app-dependent choices:
   - Note: Rails 8 has an official database-backed version via [solid-queue](https://github.com/rails/solid_queue) that is configured by default. It is recommended to use a different database instance than your primary data store in production.
 - [rspec](https://rspec.info/) for tests with [factory_bot](https://github.com/thoughtbot/factory_bot_rails) for factories instead of fixtures
   - Note: factory_bot is added to the gemfile either way, but is only configured if rspec is selected for now
+- [Ruby Native](https://rubynative.com/) for wrapping your Rails app as a native iOS and Android app
+  - Configures tabs, native navbar, safe area layout, and viewport for the demo pages
+  - For Inertia.js/React apps: includes the `@ruby-native/react` npm package and `InertiaSupport` concern
+  - For Hotwire apps: adds `native-inset` safe area class and `native_tabs_tag` to the layout
 
 [Remember to review the recommended new app flags for the `rails new` command](#built-in-to-rails-new)
 
