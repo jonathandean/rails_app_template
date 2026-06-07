@@ -3,10 +3,11 @@ RSpec.describe "environment_config.rb" do
 
   let(:base_answers) do
     {
+      use_defaults: false,
       mise: false,
       ruby_version: "3.4.5",
       ruby_gemset: nil,
-      node_version: nil,
+      use_node: false,
     }
   end
 
@@ -27,10 +28,6 @@ RSpec.describe "environment_config.rb" do
       cmd = h.commands.find { |c| c.include?(".ruby-version") }
       expect(cmd).not_to be_nil
       expect(cmd).to include("3.4.5")
-    end
-
-    it "writes the node version to .node-version" do
-      expect(h.has_command?(".node-version")).to be true
     end
 
     it "installs bundler 2.6.9" do
@@ -55,10 +52,32 @@ RSpec.describe "environment_config.rb" do
     context "when gemset is declined (nil)" do
       subject(:h) { run_template(ruby_gemset: nil) }
 
-      it "still runs the echo command (template checks truthiness of response)" do
-        # The template checks `if ruby_gemset` — nil is falsy in Ruby,
-        # so .ruby-gemset is NOT created.
+      it "does NOT create .ruby-gemset" do
         cmd = h.commands.find { |c| c.include?(".ruby-gemset") }
+        expect(cmd).to be_nil
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Node.js option
+  # ---------------------------------------------------------------------------
+  describe "Node.js option" do
+    context "when enabled" do
+      subject(:h) { run_template(use_node: true, node_version: "22") }
+
+      it "writes the node version to .node-version" do
+        cmd = h.commands.find { |c| c.include?(".node-version") }
+        expect(cmd).not_to be_nil
+        expect(cmd).to include("22")
+      end
+    end
+
+    context "when disabled" do
+      subject(:h) { run_template(use_node: false) }
+
+      it "does NOT create .node-version" do
+        cmd = h.commands.find { |c| c.include?(".node-version") }
         expect(cmd).to be_nil
       end
     end
@@ -69,7 +88,7 @@ RSpec.describe "environment_config.rb" do
   # ---------------------------------------------------------------------------
   describe "mise option" do
     context "when enabled" do
-      subject(:h) { run_template(mise: true, ruby_version: "3.4.5", node_version: "22") }
+      subject(:h) { run_template(mise: true, ruby_version: "3.4.5", use_node: true, node_version: "22") }
 
       it "creates mise.toml with ruby version" do
         created = h.actions_of(:create_file).find { |a| a.args.first == "mise.toml" }
@@ -88,6 +107,26 @@ RSpec.describe "environment_config.rb" do
       end
 
       it "runs mise install" do
+        expect(h.has_command?("mise install")).to be true
+      end
+    end
+
+    context "when enabled without Node" do
+      subject(:h) { run_template(mise: true, ruby_version: "3.4.5", use_node: false) }
+
+      it "creates mise.toml with ruby version" do
+        created = h.actions_of(:create_file).find { |a| a.args.first == "mise.toml" }
+        expect(created).not_to be_nil
+        expect(created.args[1]).to include("ruby = '3.4.5'")
+      end
+
+      it "does NOT append node to mise.toml" do
+        appended = h.appended_files.find { |a| a.args.first == "mise.toml" }
+        expect(appended).to be_nil
+      end
+
+      it "still runs mise trust and install" do
+        expect(h.has_command?("mise trust")).to be true
         expect(h.has_command?("mise install")).to be true
       end
     end
@@ -118,6 +157,42 @@ RSpec.describe "environment_config.rb" do
     it "uses the specified ruby version" do
       cmd = h.commands.find { |c| c.include?(".ruby-version") }
       expect(cmd).to include("3.3.0")
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Use-all-defaults mode
+  # ---------------------------------------------------------------------------
+  describe "use_defaults mode" do
+    subject(:h) do
+      harness = TemplateHarness.new(use_defaults: true)
+      harness.apply(template_path)
+      harness
+    end
+
+    it "uses default Ruby version 3.4" do
+      cmd = h.commands.find { |c| c.include?(".ruby-version") }
+      expect(cmd).to include("3.4")
+    end
+
+    it "creates mise.toml (default: mise enabled)" do
+      expect(h.created_files).to include("mise.toml")
+    end
+
+    it "writes Node 24 to .node-version (default: node enabled)" do
+      cmd = h.commands.find { |c| c.include?(".node-version") }
+      expect(cmd).not_to be_nil
+      expect(cmd).to include("24")
+    end
+
+    it "does NOT create .ruby-gemset (default: skip)" do
+      cmd = h.commands.find { |c| c.include?(".ruby-gemset") }
+      expect(cmd).to be_nil
+    end
+
+    it "runs mise trust and install" do
+      expect(h.has_command?("mise trust")).to be true
+      expect(h.has_command?("mise install")).to be true
     end
   end
 end

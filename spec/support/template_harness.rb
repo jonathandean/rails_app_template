@@ -14,6 +14,7 @@ class TemplateHarness
   Action = Struct.new(:type, :args, :options, :group, keyword_init: true)
 
   TEMPLATE_PROMPTS = {
+    "all defaults"              => :use_defaults,
     "use React"                 => :react,
     "importmaps"                => :importmaps,
     "lograge"                   => :lograge,
@@ -31,9 +32,10 @@ class TemplateHarness
     "Overmind"                  => :overmind,
     # environment_config.rb
     "use Mise"                  => :mise,
-    "ruby version"              => :ruby_version,
+    "Ruby version"              => :ruby_version,
     "gemset name"               => :ruby_gemset,
-    "Node.js"                   => :node_version,
+    "need Node"                 => :use_node,
+    "Node.js version"           => :node_version,
   }.freeze
 
   attr_reader :actions
@@ -82,7 +84,13 @@ class TemplateHarness
   end
 
   def ask(question, *_args)
-    answer_for(question)
+    val = answer_for(question)
+    case val
+    when true then "y"
+    when false then "n"
+    when nil then ""
+    else val.to_s
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -165,8 +173,9 @@ class TemplateHarness
     @after_bundle_blocks << block
   end
 
-  # Silenced — template uses puts for user messages
+  # Silenced — template uses puts/say for user messages
   def puts(*_args); end
+  def say(*_args); end
 
   # Used in template.rb after_bundle for puts "cd #{app_name}"
   def app_name
