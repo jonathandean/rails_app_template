@@ -12,6 +12,7 @@ use_react = yes?("Do you want to use React via Inertia.js? If no, the Rails stan
 if use_react
   gem "inertia_rails"
   gem "vite_rails"
+  create_file "Procfile.dev", "vite: bin/vite dev\nweb: bin/rails server\n"
 else
   # View components for portions of views with more complex logic
   gem "view_component"
@@ -34,6 +35,8 @@ else
   else
     copy_file "templates/view_component_preview_esbuild.html.erb", "app/views/layouts/view_component_preview.html.erb"
   end
+
+  create_file "Procfile.dev", "css: bin/rails tailwindcss:watch\nweb: bin/rails server\n"
 end
 
 lograge = yes?("Do you want to add and configure lograge to reduce Request logging to a single line in production?")
@@ -204,6 +207,17 @@ module Types
 end
 CODE
 
+use_overmind = yes?("Do you want to use tmux enabled Overmind instead of Foreman for process management? *NIX only (y/n)")
+if use_overmind
+  gem_group :development do
+    gem "overmind"
+  end
+else
+  gem_group :development do
+    gem "foreman"
+  end
+end
+
 after_bundle do
   # This needs to be first or all other run/generate commands will fail with "No such file or directory [...]config/vite.json"
   if use_react
@@ -214,6 +228,8 @@ after_bundle do
     # https://github.com/ElMassimo/vite_ruby/tree/main/vite-plugin-rails
     gsub_file "vite.config.ts", "import RubyPlugin from 'vite-plugin-ruby'", "import ViteRails from 'vite-plugin-rails'"
     gsub_file "vite.config.ts", "RubyPlugin()", "ViteRails()"
+  else
+    run "bin/rails tailwindcss:install"
   end
 
   if rspec
@@ -464,6 +480,23 @@ EOS
     puts "  (if you are using Postgres.app on Mac you may need a fully qualified path if you've not added the bin dir to your path, "
     puts"     such as: `/Applications/Postgres.app/Contents/Versions/17/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
   end
+
+  if use_overmind
+    run "bundle binstubs overmind"
+    create_file "bin/dev", <<~SH, force: true
+      #!/usr/bin/env sh
+
+      bin/overmind start -f Procfile.dev
+    SH
+  else
+    create_file "bin/dev", <<~SH, force: true
+      #!/usr/bin/env sh
+
+      bundle exec foreman start -f Procfile.dev
+    SH
+  end
+  run "chmod +x bin/dev"
+
   puts "Setup and run dev environment:"
   puts "bin/setup"
 end
