@@ -12,12 +12,14 @@ use_react = yes?("Do you want to use React via Inertia.js? If no, the Rails stan
 if use_react
   gem "inertia_rails"
   gem "vite_rails"
+  create_file "Procfile.dev", "vite: bin/vite dev\nweb: bin/rails server\n"
 else
   # View components for portions of views with more complex logic
   gem "view_component"
   gem_group :development do
     # Easily preview ViewComponents
     gem "lookbook"
+    gem "hotwire-spark"
   end
 
   route <<-EOS
@@ -28,16 +30,14 @@ else
 
   # ViewComponents
   create_file "app/components/.keep", ''
-  # ViewComponent previews for lookbook
-  create_file "spec/components/previews/.keep", ''
-  # Configure lookbook preview path
-  environment 'config.lookbook.preview_paths = ["#{Rails.root}/spec/components/previews"]', env: 'development'
   # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
   if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
     copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
   else
     copy_file "templates/view_component_preview_esbuild.html.erb", "app/views/layouts/view_component_preview.html.erb"
   end
+
+  create_file "Procfile.dev", "css: bin/rails tailwindcss:watch\nweb: bin/rails server\n"
 end
 
 lograge = yes?("Do you want to add and configure lograge to reduce Request logging to a single line in production?")
@@ -95,6 +95,19 @@ gem_group :development, :test do
   gem 'bundler-audit' unless File.exist?("Gemfile") && File.read("Gemfile").include?("bundler-audit")
 end
 
+previews_dir = rspec ? 'spec' : 'test'
+
+unless use_react
+  # ViewComponent previews for lookbook
+  create_file "#{previews_dir}/components/previews/.keep", ''
+  # Configure ViewComponent preview path (Lookbook reads from this).
+  # Rails 8.1 / ViewComponent 4.x use `view_component.previews.paths`
+  # (the legacy `preview_paths` accessor returns nil).
+  # Escape \#{Rails.root} so it's interpolated when development.rb loads,
+  # not at template-eval time.
+  environment "config.view_component.previews.paths << \"\#{Rails.root}/#{previews_dir}/components/previews\"", env: 'development'
+end
+
 is_using_postgres = yes?("Are you using PostgreSQL as your database?")
 
 if is_using_postgres && sidekiq
@@ -103,6 +116,11 @@ if is_using_postgres && sidekiq
 elsif is_using_postgres
   # TODO need another version of this for solid queue and env var support
   puts "Be sure to update your database.yml file"
+end
+
+add_ruby_native = yes?("Do you want to add Ruby Native for iOS and Android app support? (https://rubynative.com)")
+if add_ruby_native
+  gem "ruby_native"
 end
 
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
@@ -154,12 +172,14 @@ if use_react
     )
   EOS
 else
-  environment <<-'EOS'
+  # Escape \#{config.root} so it remains literal in application.rb for
+  # runtime interpolation; previews_dir is substituted now (template time).
+  environment <<-EOS
     config.autoload_paths += %W(
-      #{config.root}/app/components
-      #{config.root}/spec/components/previews
-      #{config.root}/app/services
-      #{config.root}/lib
+      \#{config.root}/app/components
+      \#{config.root}/#{previews_dir}/components/previews
+      \#{config.root}/app/services
+      \#{config.root}/lib
     )
   EOS
 end
@@ -188,6 +208,17 @@ module Types
 end
 CODE
 
+use_overmind = yes?("Do you want to use tmux enabled Overmind instead of Foreman for process management? *NIX only (y/n)")
+if use_overmind
+  gem_group :development do
+    gem "overmind"
+  end
+else
+  gem_group :development do
+    gem "foreman"
+  end
+end
+
 after_bundle do
   # This needs to be first or all other run/generate commands will fail with "No such file or directory [...]config/vite.json"
   if use_react
@@ -198,6 +229,8 @@ after_bundle do
     # https://github.com/ElMassimo/vite_ruby/tree/main/vite-plugin-rails
     gsub_file "vite.config.ts", "import RubyPlugin from 'vite-plugin-ruby'", "import ViteRails from 'vite-plugin-rails'"
     gsub_file "vite.config.ts", "RubyPlugin()", "ViteRails()"
+  else
+    run "bin/rails tailwindcss:install"
   end
 
   if rspec
@@ -225,13 +258,13 @@ after_bundle do
       </ul>
     </nav>
 EOS
-   else
+  else
  <<-EOS
     <nav class="p-8">
       <h2 class="font-semibold text-xl">Navigation</h2>
       <ul class="mt-4">
-        <li><%= render LinkComponent.new(url: '/lookbook').with_content('Lookbook (ViewComponent Previews)') %></li>
-        #{sidekiq ? "<li><%= render LinkComponent.new(url: '/admin/jobs').with_content('Sidekiq') %></li>" : ""}
+        <li><%= link_to("Lookbook (ViewComponent Previews)", "/lookbook") %></li>
+        #{sidekiq ? "<li><%= link_to('Sidekiq', '/admin/jobs') %></li>" : ""}
       </ul>
     </nav>
 EOS
@@ -342,11 +375,11 @@ EOS
 
   <% if logged_in? %>
     <p class="pt-6">
-      <%= render ButtonToComponent.new 'Logout', '/auth/logout', method: :get, variant: :default, turbo: false %>
+      <%= button_to 'Logout', '/auth/logout', method: :get, variant: :default, turbo: false %>
     </p>
   <% else %>
     <p class="pt-6">
-      <%= render ButtonToComponent.new 'Login', '/auth/auth0', method: :post, variant: :primary, turbo: false %>
+      <%= button_to 'Login', '/auth/auth0', method: :post, variant: :primary, turbo: false %>
     </p>
   <% end %>
 
@@ -354,7 +387,7 @@ EOS
     insert_into_file "app/views/home/index.html.erb", template_login_button_code, after: "<p>Find me in app/views/home/index.html.erb</p>"
     user_link_code = <<-EOS
 
-  <li><%= render LinkComponent.new(url: '/user/show').with_content("User Info") %></li>
+  <li><%= link_to "User Info", "/user/show" %></li>
     EOS
     insert_into_file "app/views/home/index.html.erb", user_link_code, after: "<ul>"
     user_info_code = <<-EOS
@@ -369,10 +402,66 @@ EOS
     </dl>
   </div>
   <nav class="mt-8">
-    <%= render LinkComponent.new(url: '/').with_content("Back") %>
+    <%= link_to "Back", "/" %>
   </nav>
     EOS
     insert_into_file "app/views/user/show.html.erb", user_info_code, after: "<p>Find me in app/views/user/show.html.erb</p>"
+  end
+
+  if add_ruby_native
+    generate "ruby_native:install"
+
+    if use_react
+      run "npm install @ruby-native/react"
+      insert_into_file "app/controllers/application_controller.rb",
+        "\n  include RubyNative::InertiaSupport",
+        after: "ActionController::Base"
+    end
+
+    # Build tabs config customized to the demo pages
+    ruby_native_yml = "appearance:\n  theme: auto\n  tint_color: \"#007AFF\"\n\n"
+    ruby_native_yml += "tabs:\n"
+    ruby_native_yml += "  - title: Home\n    path: /\n    icon: house\n"
+    if use_react
+      ruby_native_yml += "  - title: Example\n    path: /inertia-example\n    icon: sparkles\n"
+    end
+    if add_auth0
+      ruby_native_yml += "  - title: Profile\n    path: /user/show\n    icon: person\n"
+    end
+    create_file "config/ruby_native.yml", ruby_native_yml, force: true
+
+    # Layout: add viewport-fit=cover for safe area CSS variables
+    gsub_file "app/views/layouts/application.html.erb",
+      "width=device-width,initial-scale=1",
+      "width=device-width,initial-scale=1,viewport-fit=cover"
+
+    # Layout: add Ruby Native stylesheet
+    insert_into_file "app/views/layouts/application.html.erb",
+      "\n    <%= stylesheet_link_tag :ruby_native %>",
+      after: "<%= csp_meta_tag %>"
+
+    # Layout: add native tab bar
+    insert_into_file "app/views/layouts/application.html.erb",
+      "    <%= native_tabs_tag %>\n",
+      before: "  </body>"
+
+    unless use_react
+      # Hotwire: add native-inset class to the main content wrapper for safe area spacing
+      gsub_file "app/views/layouts/application.html.erb",
+        '<main class="',
+        '<main class="native-inset '
+    end
+
+    # Home page: add native navbar and conditionally hide web heading
+    ruby_native_heading = <<~ERB
+      <%= native_navbar_tag("Home") %>
+      <% unless native_app? %>
+      <h1>Home#index</h1>
+      <% end %>
+    ERB
+    gsub_file "app/views/home/index.html.erb",
+      "<h1>Home#index</h1>",
+      ruby_native_heading.strip
   end
 
   git :init
@@ -393,6 +482,23 @@ EOS
     puts "  (if you are using Postgres.app on Mac you may need a fully qualified path if you've not added the bin dir to your path, "
     puts"     such as: `/Applications/Postgres.app/Contents/Versions/17/bin/createuser #{app_name} -s -d -P -r -h localhost -p 5432`)"
   end
+
+  if use_overmind
+    run "bundle binstubs overmind"
+    create_file "bin/dev", <<~SH, force: true
+      #!/usr/bin/env sh
+
+      bin/overmind start -f Procfile.dev
+    SH
+  else
+    create_file "bin/dev", <<~SH, force: true
+      #!/usr/bin/env sh
+
+      bundle exec foreman start -f Procfile.dev
+    SH
+  end
+  run "chmod +x bin/dev"
+
   puts "Setup and run dev environment:"
   puts "bin/setup"
 end
