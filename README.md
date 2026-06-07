@@ -18,10 +18,10 @@ bin/rails app:template LOCATION=../rails_app_template/template.rb
 The default choices are:
 - Ruby 3.4 + Node 24 via mise (Node only needed to support plugins in tailwind - not a runtime dependency)
 - Importmaps
-- Tailwind CSS
+- Tailwind CSS 4
 - Hotwire
 - ViewComponents + Lookbook previews
-- shadcn-ui components (Hotwire only)
+- shadcn-ui Rails components
 - Lograge in production
 - Solid queue
 - SQLite
