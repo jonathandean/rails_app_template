@@ -31,7 +31,7 @@ else
   # ViewComponent previews for lookbook
   create_file "spec/components/previews/.keep", ''
   # Configure lookbook preview path
-  environment 'config.view_component.previews.paths << "#{Rails.root}/spec/components/previews"', env: 'development'
+  environment 'config.lookbook.preview_paths = ["#{Rails.root}/spec/components/previews"]', env: 'development'
   # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
   if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
     copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
