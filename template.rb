@@ -19,6 +19,7 @@ else
   gem_group :development do
     # Easily preview ViewComponents
     gem "lookbook"
+    gem "hotwire-spark"
   end
 
   route <<-EOS
