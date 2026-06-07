@@ -14,6 +14,7 @@ RSpec.describe "template.rb" do
       rspec: false,
       postgres: false,
       ruby_native: false,
+      overmind: false,
       git_commit: false,
     }
   end
