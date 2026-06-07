@@ -419,7 +419,8 @@ EOS
     end
 
     # Build tabs config customized to the demo pages
-    ruby_native_yml = "tabs:\n"
+    ruby_native_yml = "appearance:\n  theme: auto\n  tint_color: \"#007AFF\"\n\n"
+    ruby_native_yml += "tabs:\n"
     ruby_native_yml += "  - title: Home\n    path: /\n    icon: house\n"
     if use_react
       ruby_native_yml += "  - title: Example\n    path: /inertia-example\n    icon: sparkles\n"
