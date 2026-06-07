@@ -91,10 +91,11 @@ RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ?
   # Hotwire minimal: importmaps, RSpec, sqlite (no Auth0/Sidekiq/PG)
   # ---------------------------------------------------------------------------
   describe "Hotwire minimal (importmaps, RSpec, sqlite)" do
-    # react? n | importmaps? y | lograge? n | sidekiq? n | hashdiff? n |
-    # auth0? n | rspec? y | postgres? n | commit? n
+    # use_defaults? n | react? n | importmaps? y | lograge? n | sidekiq? n |
+    # hashdiff? n | auth0? n | rspec? y | postgres? n | ruby_native? n |
+    # overmind? n | commit? n
     let(:app_name) { "hotwire_minimal" }
-    let(:answers) { %w[n y n n n n y n n] }
+    let(:answers) { %w[n n y n n n n y n n n n] }
     let(:rails_flags) { "--css=tailwind --skip-system-test" }
 
     include_examples "a generated app",
@@ -107,10 +108,11 @@ RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ?
   # React minimal: Inertia + Vite, minitest, sqlite
   # ---------------------------------------------------------------------------
   describe "React minimal (Inertia/Vite, sqlite)" do
-    # react? y | lograge? n | sidekiq? n | hashdiff? n | auth0? n |
-    # rspec? n | postgres? n | commit? n   (no importmaps prompt for React)
+    # use_defaults? n | react? y | lograge? n | sidekiq? n | hashdiff? n |
+    # auth0? n | rspec? n | postgres? n | ruby_native? n | overmind? n |
+    # commit? n   (no importmaps prompt for React)
     let(:app_name) { "react_minimal" }
-    let(:answers) { %w[y n n n n n n n] }
+    let(:answers) { %w[n y n n n n n n n n n] }
     let(:rails_flags) { "--css=tailwind --skip-system-test --skip-hotwire --skip-jbuilder" }
 
     include_examples "a generated app",
@@ -125,11 +127,11 @@ RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ?
   describe "Hotwire full (PG + Sidekiq + Auth0 + Guest + RSpec)" do
     before { skip "requires pg_config (libpq) to build the pg gem" unless pg_available? }
 
-    # react? n | importmaps? y | lograge? y | sidekiq? y | hashdiff? y |
-    # auth0? y | rspec? y | postgres? y | <cid> | <secret> | <domain> |
-    # guest? y | commit? n
+    # use_defaults? n | react? n | importmaps? y | lograge? y | sidekiq? y |
+    # hashdiff? y | auth0? y | rspec? y | postgres? y | ruby_native? n |
+    # overmind? n | <cid> | <secret> | <domain> | guest? y | commit? n
     let(:app_name) { "hotwire_full" }
-    let(:answers) { %w[n y y y y y y y test-cid test-csec test.auth0.com y n] }
+    let(:answers) { %w[n n y y y y y y y n n test-cid test-csec test.auth0.com y n] }
     let(:rails_flags) { "--database=postgresql --css=tailwind --skip-system-test" }
 
     include_examples "a generated app",
@@ -144,10 +146,11 @@ RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ?
   describe "React + Postgres + RSpec" do
     before { skip "requires pg_config (libpq) to build the pg gem" unless pg_available? }
 
-    # react? y | lograge? n | sidekiq? n | hashdiff? n | auth0? n |
-    # rspec? y | postgres? y | commit? n
+    # use_defaults? n | react? y | lograge? n | sidekiq? n | hashdiff? n |
+    # auth0? n | rspec? y | postgres? y | ruby_native? n | overmind? n |
+    # commit? n
     let(:app_name) { "react_pg_rspec" }
-    let(:answers) { %w[y n n n n y y n] }
+    let(:answers) { %w[n y n n n n y y n n n] }
     let(:rails_flags) { "--database=postgresql --css=tailwind --skip-system-test --skip-hotwire --skip-jbuilder" }
 
     include_examples "a generated app",

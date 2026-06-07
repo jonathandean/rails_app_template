@@ -5,9 +5,39 @@ def source_paths
   Array(super) + [__dir__]
 end
 
+# ---------------------------------------------------------------------------
+# Prompt helpers
+# ---------------------------------------------------------------------------
+# When +use_defaults+ is true every question is silently answered with the
+# default value so the generator can run completely hands-free.
+
+def yes_default?(question, default:, use_defaults: false)
+  return default if use_defaults
+  hint = default ? "Y/n" : "y/N"
+  response = ask("#{question} [#{hint}]")
+  return default if response.strip.empty?
+  response.strip.downcase.start_with?("y")
+end
+
+def ask_default(question, default: "", use_defaults: false)
+  return default if use_defaults
+  response = ask("#{question} [#{default}]")
+  response.strip.empty? ? default : response.strip
+end
+
+# ---------------------------------------------------------------------------
+# Configuration mode
+# ---------------------------------------------------------------------------
+
+use_defaults = yes?("Use all defaults without prompting? (y/N)")
+
+# ---------------------------------------------------------------------------
+# Questions
+# ---------------------------------------------------------------------------
+
 create_file ".env"
 
-use_react = yes?("Do you want to use React via Inertia.js? If no, the Rails standard of Hotwire will be used, with the addition of ViewComponents.")
+use_react = yes_default?("Do you want to use React via Inertia.js? If no, the Rails standard of Hotwire will be used, with the addition of ViewComponents.", default: false, use_defaults: use_defaults)
 
 if use_react
   gem "inertia_rails"
@@ -31,7 +61,7 @@ else
   # ViewComponents
   create_file "app/components/.keep", ''
   # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
-  if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
+  if yes_default?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)", default: true, use_defaults: use_defaults)
     copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
   else
     copy_file "templates/view_component_preview_esbuild.html.erb", "app/views/layouts/view_component_preview.html.erb"
@@ -40,13 +70,13 @@ else
   create_file "Procfile.dev", "css: bin/rails tailwindcss:watch\nweb: bin/rails server\n"
 end
 
-lograge = yes?("Do you want to add and configure lograge to reduce Request logging to a single line in production?")
+lograge = yes_default?("Do you want to add and configure lograge to reduce Request logging to a single line in production?", default: true, use_defaults: use_defaults)
 if lograge
   # Reduce Request logging to a single line in production
   gem "lograge"
 end
 
-sidekiq = yes?("Do you want to use Sidekiq and Redis for background jobs?")
+sidekiq = yes_default?("Do you want to use Sidekiq and Redis for background jobs?", default: false, use_defaults: use_defaults)
 if sidekiq
   # Backgroud jobs
   gem 'sidekiq'
@@ -57,7 +87,7 @@ gem 'dry-configurable'
 gem 'dry-struct'
 gem 'dry-validation'
 
-if yes?("Do you want hashdiff to compare the differences between hashes and arrays?")
+if yes_default?("Do you want hashdiff to compare the differences between hashes and arrays?", default: false, use_defaults: use_defaults)
   # Compare hashes and arrays
   gem 'hashdiff'
 end
@@ -68,7 +98,7 @@ gem 'thor' # used by `bin/cli` and it's commands
 gem 'tty-option' # presenting options in an interactive CLI
 gem 'tty-progressbar'
 
-add_auth0 = yes?("Do you want to include authentication via Auth0?")
+add_auth0 = yes_default?("Do you want to include authentication via Auth0?", default: false, use_defaults: use_defaults)
 if add_auth0
   gem 'omniauth-auth0'
   gem 'omniauth-rails_csrf_protection' # prevents forged authentication requests
@@ -79,7 +109,7 @@ gem_group :development do
   gem "annotaterb"
 end
 
-rspec = yes?("Do you want to use RSpec instead of minitest?")
+rspec = yes_default?("Do you want to use RSpec instead of minitest?", default: false, use_defaults: use_defaults)
 
 gem_group :development, :test do
   # Ease of setting environment variables locally
@@ -108,7 +138,7 @@ unless use_react
   environment "config.view_component.previews.paths << \"\#{Rails.root}/#{previews_dir}/components/previews\"", env: 'development'
 end
 
-is_using_postgres = yes?("Are you using PostgreSQL as your database?")
+is_using_postgres = yes_default?("Are you using PostgreSQL as your database?", default: false, use_defaults: use_defaults)
 
 if is_using_postgres && sidekiq
   # Use a version of `config/database.yml` with ENV var support built in for anyone who wants to override defaults locally
@@ -118,7 +148,7 @@ elsif is_using_postgres
   puts "Be sure to update your database.yml file"
 end
 
-add_ruby_native = yes?("Do you want to add Ruby Native for iOS and Android app support? (https://rubynative.com)")
+add_ruby_native = yes_default?("Do you want to add Ruby Native for iOS and Android app support? (https://rubynative.com)", default: true, use_defaults: use_defaults)
 if add_ruby_native
   gem "ruby_native"
 end
@@ -208,7 +238,7 @@ module Types
 end
 CODE
 
-use_overmind = yes?("Do you want to use tmux enabled Overmind instead of Foreman for process management? *NIX only (y/n)")
+use_overmind = yes_default?("Do you want to use tmux enabled Overmind instead of Foreman for process management? *NIX only", default: true, use_defaults: use_defaults)
 if use_overmind
   gem_group :development do
     gem "overmind"
@@ -291,9 +321,9 @@ EOS
   end
 
   if add_auth0
-    auth0_client_id = ask("What is your Auth0 Client ID? (or you can manually add to .env later)")
-    auth0_client_secret = ask("What is your Auth0 Client Secret? (or you can manually add to .env later)")
-    auth0_domain = ask("What is your Auth0 Domain? (or you can manually add to .env later)")
+    auth0_client_id = ask_default("What is your Auth0 Client ID? (leave blank to add to .env later)", default: "", use_defaults: use_defaults)
+    auth0_client_secret = ask_default("What is your Auth0 Client Secret? (leave blank to add to .env later)", default: "", use_defaults: use_defaults)
+    auth0_domain = ask_default("What is your Auth0 Domain? (leave blank to add to .env later)", default: "", use_defaults: use_defaults)
 
     append_to_file ".env", <<-EOS
 AUTH0_CLIENT_ID="#{auth0_client_id}"
@@ -332,7 +362,7 @@ AUTH0_DOMAIN="#{auth0_domain}"
 
     generate "model User"
     migration_filename = Dir['db/migrate/*_create_users.rb'].first
-    allow_guest_users = yes?("Do you want to support guest user accounts?")
+    allow_guest_users = yes_default?("Do you want to support guest user accounts?", default: false, use_defaults: use_defaults)
     migration_code = <<-EOS
 
       t.string :auth0_id, null: #{allow_guest_users ? 'true': 'false'}
@@ -466,7 +496,7 @@ EOS
 
   git :init
 
-  if yes?("Should we commit your empty app to git?")
+  if yes_default?("Should we commit your empty app to git?", default: true, use_defaults: use_defaults)
     git add: '.'
     git commit: "-a -m 'Initial commit'"
   end

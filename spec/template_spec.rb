@@ -5,6 +5,7 @@ RSpec.describe "template.rb" do
   # prompts that are only reached conditionally.
   let(:base_answers) do
     {
+      use_defaults: false,
       react: false,
       importmaps: true,
       lograge: false,
@@ -1010,6 +1011,65 @@ RSpec.describe "template.rb" do
 
     it "does NOT use the database-pg-sidekiq template" do
       expect(h.templated_files).to be_empty
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Use-all-defaults mode
+  # ---------------------------------------------------------------------------
+  describe "use_defaults mode" do
+    subject(:h) do
+      harness = TemplateHarness.new(use_defaults: true)
+      harness.apply(template_path)
+      harness
+    end
+
+    it "selects Hotwire (not React)" do
+      expect(h).not_to have_gem("inertia_rails")
+      expect(h).to have_gem("view_component")
+    end
+
+    it "uses importmaps layout" do
+      src = h.copied_files.find { |f| f[:dest] == "app/views/layouts/view_component_preview.html.erb" }
+      expect(src[:src]).to include("importmaps")
+    end
+
+    it "enables lograge in production" do
+      expect(h).to have_gem("lograge")
+      expect(h.has_environment?("lograge.enabled = true", env: "production")).to be true
+    end
+
+    it "does NOT add Sidekiq (uses Solid Queue)" do
+      expect(h).not_to have_gem("sidekiq")
+    end
+
+    it "does NOT add hashdiff" do
+      expect(h).not_to have_gem("hashdiff")
+    end
+
+    it "does NOT add Auth0" do
+      expect(h).not_to have_gem("omniauth-auth0")
+    end
+
+    it "uses Minitest (not RSpec)" do
+      expect(h).not_to have_gem("rspec-rails")
+    end
+
+    it "uses SQLite (not PostgreSQL)" do
+      expect(h.has_environment?("schema_format")).to be false
+    end
+
+    it "adds Ruby Native" do
+      expect(h).to have_gem("ruby_native")
+    end
+
+    it "uses Overmind" do
+      expect(h).to have_gem("overmind")
+      expect(h).not_to have_gem("foreman")
+    end
+
+    it "commits to git" do
+      expect(h.git_commands.any? { |a| a.args.any? { |arg| arg.is_a?(Hash) && arg[:commit] } }).to be true
     end
   end
 

@@ -2,6 +2,35 @@
 
 My preferred starting point for new Rails 8 apps, with some optional configuration for things I sometimes use.
 
+## Quick start
+
+(Quick start assumes you have [mise](https://mise.jdx.dev/) installed, but it is not required. Scroll down for alternatives.)
+
+```bash
+cd <your_projects_dir>
+git clone git@github.com:jonathandean/rails_app_template.git
+mise exec ruby@3.4 -- rails new your_app_name --css=tailwind --skip-jbuilder --skip-bundle
+cd your_app_name
+mise exec ruby@3.4 -- rails app:template LOCATION=../rails_app_template/environment_config.rb
+bin/rails app:template LOCATION=../rails_app_template/template.rb
+```
+
+The default choices are:
+- Ruby 3.4 + Node 24 via mise (Node only needed to support plugins in tailwind - not a runtime dependency)
+- Importmaps
+- Tailwind CSS
+- Hotwire
+- ViewComponents + Lookbook previews
+- Lograge in production
+- Solid queue
+- SQLite
+- Minitest
+- RubyNative
+- Overmind process manager
+- No Jbuilder
+
+Each prompt has a default value shown in brackets — just hit enter to accept it. You can also answer "yes" to the first prompt ("Use all defaults without prompting?") to skip all questions and use the defaults above.
+
 ## Standard for this template
 
 These are things I generally always use:
