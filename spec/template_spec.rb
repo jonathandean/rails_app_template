@@ -176,8 +176,8 @@ RSpec.describe "template.rb" do
         expect(h.has_created_file?("app/components/.keep")).to be true
       end
 
-      it "creates spec/components/previews/.keep" do
-        expect(h.has_created_file?("spec/components/previews/.keep")).to be true
+      it "creates test/components/previews/.keep (minitest default)" do
+        expect(h.has_created_file?("test/components/previews/.keep")).to be true
       end
 
       it "configures view_component previews.paths in development" do
@@ -185,18 +185,54 @@ RSpec.describe "template.rb" do
         expect(h.has_environment?("view_component.previews.paths", env: "development")).to be true
       end
 
+      it "preserves runtime interpolation of Rails.root in preview path" do
+        # The string written into development.rb must contain literal `#{Rails.root}`
+        # so Rails interpolates it at app load time, not at template-eval time.
+        env = h.environments.find { |a| a.args.first.to_s.include?("previews.paths") }
+        expect(env.args.first).to include('#{Rails.root}')
+      end
+
       it "adds autoload_paths including components and previews" do
         autoload_envs = h.environments.select { |a| a.args.first.to_s.include?("autoload_paths") }
         code = autoload_envs.first.args.first
         expect(code).to include("app/components")
-        expect(code).to include("spec/components/previews")
+        expect(code).to include("test/components/previews")
         expect(code).to include("app/services")
+      end
+
+      it "does not leak template-time `rspec` variable into application.rb" do
+        # Regression: a single-quoted heredoc previously embedded literal
+        # `#{rspec ? 'spec' : 'test'}` into application.rb, raising NameError
+        # at Rails boot.
+        autoload_envs = h.environments.select { |a| a.args.first.to_s.include?("autoload_paths") }
+        code = autoload_envs.first.args.first
+        expect(code).not_to include('#{rspec')
+        expect(code).not_to include("rspec ?")
       end
 
       it "inserts flash markup into application layout" do
         flash_inserts = h.inserted_files.select { |a| a.args.first.to_s.include?("application.html.erb") }
         expect(flash_inserts).not_to be_empty
         expect(flash_inserts.first.args[1]).to include("flash.each")
+      end
+
+      context "with RSpec enabled" do
+        subject(:h) { run_template(react: false, importmaps: true, rspec: true) }
+
+        it "creates spec/components/previews/.keep" do
+          expect(h.has_created_file?("spec/components/previews/.keep")).to be true
+        end
+
+        it "adds autoload_paths including spec/components/previews" do
+          autoload_envs = h.environments.select { |a| a.args.first.to_s.include?("autoload_paths") }
+          code = autoload_envs.first.args.first
+          expect(code).to include("spec/components/previews")
+        end
+
+        it "uses spec dir in view_component previews.paths" do
+          env = h.environments.find { |a| a.args.first.to_s.include?("previews.paths") }
+          expect(env.args.first).to include("spec/components/previews")
+        end
       end
     end
   end

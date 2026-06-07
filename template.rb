@@ -28,10 +28,6 @@ else
 
   # ViewComponents
   create_file "app/components/.keep", ''
-  # ViewComponent previews for lookbook
-  create_file "spec/components/previews/.keep", ''
-  # Configure lookbook preview path
-  environment 'config.lookbook.preview_paths = ["#{Rails.root}/spec/components/previews"]', env: 'development'
   # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
   if yes?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)")
     copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
@@ -93,6 +89,19 @@ gem_group :development, :test do
   # Patch-level verification for bundler.
   # Rails 8.1+ ships bundler-audit in the default Gemfile, so only add it when missing.
   gem 'bundler-audit' unless File.exist?("Gemfile") && File.read("Gemfile").include?("bundler-audit")
+end
+
+previews_dir = rspec ? 'spec' : 'test'
+
+unless use_react
+  # ViewComponent previews for lookbook
+  create_file "#{previews_dir}/components/previews/.keep", ''
+  # Configure ViewComponent preview path (Lookbook reads from this).
+  # Rails 8.1 / ViewComponent 4.x use `view_component.previews.paths`
+  # (the legacy `preview_paths` accessor returns nil).
+  # Escape \#{Rails.root} so it's interpolated when development.rb loads,
+  # not at template-eval time.
+  environment "config.view_component.previews.paths << \"\#{Rails.root}/#{previews_dir}/components/previews\"", env: 'development'
 end
 
 is_using_postgres = yes?("Are you using PostgreSQL as your database?")
@@ -159,12 +168,14 @@ if use_react
     )
   EOS
 else
-  environment <<-'EOS'
+  # Escape \#{config.root} so it remains literal in application.rb for
+  # runtime interpolation; previews_dir is substituted now (template time).
+  environment <<-EOS
     config.autoload_paths += %W(
-      #{config.root}/app/components
-      #{config.root}/spec/components/previews
-      #{config.root}/app/services
-      #{config.root}/lib
+      \#{config.root}/app/components
+      \#{config.root}/#{previews_dir}/components/previews
+      \#{config.root}/app/services
+      \#{config.root}/lib
     )
   EOS
 end
@@ -230,13 +241,13 @@ after_bundle do
       </ul>
     </nav>
 EOS
-   else
+  else
  <<-EOS
     <nav class="p-8">
       <h2 class="font-semibold text-xl">Navigation</h2>
       <ul class="mt-4">
-        <li><%= render LinkComponent.new(url: '/lookbook').with_content('Lookbook (ViewComponent Previews)') %></li>
-        #{sidekiq ? "<li><%= render LinkComponent.new(url: '/admin/jobs').with_content('Sidekiq') %></li>" : ""}
+        <li><%= link_to("Lookbook (ViewComponent Previews)", "/lookbook") %></li>
+        #{sidekiq ? "<li><%= link_to('Sidekiq', '/admin/jobs') %></li>" : ""}
       </ul>
     </nav>
 EOS
@@ -347,11 +358,11 @@ EOS
 
   <% if logged_in? %>
     <p class="pt-6">
-      <%= render ButtonToComponent.new 'Logout', '/auth/logout', method: :get, variant: :default, turbo: false %>
+      <%= button_to 'Logout', '/auth/logout', method: :get, variant: :default, turbo: false %>
     </p>
   <% else %>
     <p class="pt-6">
-      <%= render ButtonToComponent.new 'Login', '/auth/auth0', method: :post, variant: :primary, turbo: false %>
+      <%= button_to 'Login', '/auth/auth0', method: :post, variant: :primary, turbo: false %>
     </p>
   <% end %>
 
@@ -359,7 +370,7 @@ EOS
     insert_into_file "app/views/home/index.html.erb", template_login_button_code, after: "<p>Find me in app/views/home/index.html.erb</p>"
     user_link_code = <<-EOS
 
-  <li><%= render LinkComponent.new(url: '/user/show').with_content("User Info") %></li>
+  <li><%= link_to "User Info", "/user/show" %></li>
     EOS
     insert_into_file "app/views/home/index.html.erb", user_link_code, after: "<ul>"
     user_info_code = <<-EOS
@@ -374,7 +385,7 @@ EOS
     </dl>
   </div>
   <nav class="mt-8">
-    <%= render LinkComponent.new(url: '/').with_content("Back") %>
+    <%= link_to "Back", "/" %>
   </nav>
     EOS
     insert_into_file "app/views/user/show.html.erb", user_info_code, after: "<p>Find me in app/views/user/show.html.erb</p>"
