@@ -28,6 +28,7 @@ class TemplateHarness
     "Auth0 Client ID"           => :auth0_client_id,
     "Auth0 Client Secret"       => :auth0_client_secret,
     "Auth0 Domain"              => :auth0_domain,
+    "shadcn-ui"                 => :shadcn,
     "Ruby Native"               => :ruby_native,
     "Overmind"                  => :overmind,
     # environment_config.rb

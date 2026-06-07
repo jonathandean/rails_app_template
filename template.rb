@@ -70,6 +70,14 @@ else
   create_file "Procfile.dev", "css: bin/rails tailwindcss:watch\nweb: bin/rails server\n"
 end
 
+use_shadcn = false
+unless use_react
+  use_shadcn = yes_default?("Do you want to include shadcn-ui components? (https://github.com/jonathandean/shadcn-rails)", default: true, use_defaults: use_defaults)
+  if use_shadcn
+    gem "shadcn-ui", git: "https://github.com/jonathandean/shadcn-rails.git"
+  end
+end
+
 lograge = yes_default?("Do you want to add and configure lograge to reduce Request logging to a single line in production?", default: true, use_defaults: use_defaults)
 if lograge
   # Reduce Request logging to a single line in production
@@ -261,6 +269,46 @@ after_bundle do
     gsub_file "vite.config.ts", "RubyPlugin()", "ViteRails()"
   else
     run "bin/rails tailwindcss:install"
+
+    if use_shadcn
+      generate "shadcn-ui accordion"
+      generate "shadcn-ui alert"
+      generate "shadcn-ui alert-dialog"
+      generate "shadcn-ui badge"
+      generate "shadcn-ui button"
+      generate "shadcn-ui card"
+      generate "shadcn-ui checkbox"
+      generate "shadcn-ui collapsible"
+      generate "shadcn-ui combobox"
+      generate "shadcn-ui command"
+      generate "shadcn-ui context-menu"
+      generate "shadcn-ui dialog"
+      generate "shadcn-ui dropdown-menu"
+      generate "shadcn-ui dropzone"
+      generate "shadcn-ui filter"
+      generate "shadcn-ui forms"
+      generate "shadcn-ui hover-card"
+      generate "shadcn-ui input"
+      generate "shadcn-ui label"
+      generate "shadcn-ui menubar"
+      generate "shadcn-ui navigation-menu"
+      generate "shadcn-ui popover"
+      generate "shadcn-ui progress"
+      generate "shadcn-ui radio-group"
+      generate "shadcn-ui scroll-area"
+      generate "shadcn-ui select"
+      generate "shadcn-ui separator"
+      generate "shadcn-ui sheet"
+      generate "shadcn-ui skeleton"
+      generate "shadcn-ui slider"
+      generate "shadcn-ui switch"
+      generate "shadcn-ui table"
+      generate "shadcn-ui tabs"
+      generate "shadcn-ui textarea"
+      generate "shadcn-ui toast"
+      generate "shadcn-ui toggle"
+      generate "shadcn-ui tooltip"
+    end
   end
 
   if rspec
