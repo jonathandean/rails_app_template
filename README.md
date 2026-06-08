@@ -18,9 +18,10 @@ bin/rails app:template LOCATION=../rails_app_template/template.rb
 The default choices are:
 - Ruby 3.4 + Node 24 via mise (Node only needed to support plugins in tailwind - not a runtime dependency)
 - Importmaps
-- Tailwind CSS
+- Tailwind CSS 4
 - Hotwire
 - ViewComponents + Lookbook previews
+- shadcn-ui Rails components
 - Lograge in production
 - Solid queue
 - SQLite
@@ -57,7 +58,7 @@ These are things I generally always use:
 - [Stimulus](https://stimulus.hotwired.dev/) for extra sprinkles of JavaScript
 - [ViewComponent](https://viewcomponent.org/) for organizing your views into reusable components
 - [Lookbook](https://lookbook.build/) for creating, testing, and previewing components in your server-rendered views
-- [DaisyUI](https://daisyui.com/) UI Component Library (TODO)
+- [shadcn-ui](https://github.com/jonathandean/shadcn-rails) Rails port of the shadcn/ui component library — installs all components via generators
 
 ## Optional
 
@@ -73,6 +74,8 @@ These are probably app-dependent choices:
   - Note: Rails 8 has an official database-backed version via [solid-queue](https://github.com/rails/solid_queue) that is configured by default. It is recommended to use a different database instance than your primary data store in production.
 - [rspec](https://rspec.info/) for tests with [factory_bot](https://github.com/thoughtbot/factory_bot_rails) for factories instead of fixtures
   - Note: factory_bot is added to the gemfile either way, but is only configured if rspec is selected for now
+- [shadcn-ui](https://github.com/jonathandean/shadcn-rails) Rails port of the shadcn/ui component library (Hotwire only — not added when React is selected)
+  - Installs all available components via generators (accordion, alert, badge, button, card, dialog, etc.)
 - [Ruby Native](https://rubynative.com/) for wrapping your Rails app as a native iOS and Android app
   - Configures tabs, native navbar, safe area layout, and viewport for the demo pages
   - For Inertia.js/React apps: includes the `@ruby-native/react` npm package and `InertiaSupport` concern
@@ -836,7 +839,6 @@ You can always remove new apps and start again. For existing apps be sure you ha
 control and/or made a backup.
 
 # TODO
-- [ ] Install DaisyUI when choosing the Hotwire approach
 - [ ] Install shadcn UI when choosing the React approach
 - [ ] Capybara specs
 - [ ] optional bugsnag

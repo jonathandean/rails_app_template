@@ -14,6 +14,7 @@ RSpec.describe "template.rb" do
       auth0: false,
       rspec: false,
       postgres: false,
+      shadcn: false,
       ruby_native: false,
       overmind: false,
       git_commit: false,
@@ -260,6 +261,55 @@ RSpec.describe "template.rb" do
         expect(h.has_copied_file?("app/views/layouts/view_component_preview.html.erb")).to be true
         src = h.copied_files.find { |f| f[:dest] == "app/views/layouts/view_component_preview.html.erb" }
         expect(src[:src]).to include("esbuild")
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # shadcn-ui option (Hotwire path only)
+  # ---------------------------------------------------------------------------
+  describe "shadcn-ui option" do
+    context "when enabled (Hotwire path)" do
+      subject(:h) { run_template(react: false, importmaps: true, shadcn: true) }
+
+      it "adds shadcn-ui gem from fork" do
+        gem_action = h.actions_of(:gem).find { |a| a.args.first == "shadcn-ui" }
+        expect(gem_action).not_to be_nil
+        expect(gem_action.options[:git]).to eq("https://github.com/jonathandean/shadcn-rails.git")
+      end
+
+      it "generates all shadcn-ui components" do
+        %w[accordion alert alert-dialog badge button card checkbox collapsible
+           combobox command context-menu dialog dropdown-menu dropzone filter
+           forms hover-card input label menubar navigation-menu popover progress
+           radio-group scroll-area select separator sheet skeleton slider switch
+           table tabs textarea toast toggle tooltip].each do |component|
+          expect(h.has_generator?("shadcn-ui #{component}")).to be true
+        end
+      end
+    end
+
+    context "when disabled (Hotwire path)" do
+      subject(:h) { run_template(react: false, importmaps: true, shadcn: false) }
+
+      it "does NOT add shadcn-ui gem" do
+        expect(h).not_to have_gem("shadcn-ui")
+      end
+
+      it "does NOT run shadcn-ui generators" do
+        expect(h.generators.none? { |g| g.include?("shadcn-ui") }).to be true
+      end
+    end
+
+    context "when React is selected" do
+      subject(:h) { run_template(react: true) }
+
+      it "does NOT add shadcn-ui gem" do
+        expect(h).not_to have_gem("shadcn-ui")
+      end
+
+      it "does NOT run shadcn-ui generators" do
+        expect(h.generators.none? { |g| g.include?("shadcn-ui") }).to be true
       end
     end
   end
@@ -1057,6 +1107,10 @@ RSpec.describe "template.rb" do
 
     it "uses SQLite (not PostgreSQL)" do
       expect(h.has_environment?("schema_format")).to be false
+    end
+
+    it "adds shadcn-ui" do
+      expect(h).to have_gem("shadcn-ui")
     end
 
     it "adds Ruby Native" do
