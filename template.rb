@@ -38,6 +38,7 @@ use_defaults = yes?("Use all defaults without prompting? (y/N)")
 create_file ".env"
 
 use_react = yes_default?("Do you want to use React via Inertia.js? If no, the Rails standard of Hotwire will be used, with the addition of ViewComponents.", default: false, use_defaults: use_defaults)
+use_importmaps = false
 
 if use_react
   gem "inertia_rails"
@@ -61,7 +62,8 @@ else
   # ViewComponents
   create_file "app/components/.keep", ''
   # A layout for lookbook that loads tailwind for you, use it by adding `layout "view_component_preview"` to the preview controllers
-  if yes_default?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)", default: true, use_defaults: use_defaults)
+  use_importmaps = yes_default?("Are you using importmaps? (Select no if using esbuild or other, yes if you made no selection or specified importmaps)", default: true, use_defaults: use_defaults)
+  if use_importmaps
     copy_file "templates/view_component_preview_importmaps.html.erb", "app/views/layouts/view_component_preview.html.erb"
   else
     copy_file "templates/view_component_preview_esbuild.html.erb", "app/views/layouts/view_component_preview.html.erb"
@@ -269,6 +271,10 @@ after_bundle do
     gsub_file "vite.config.ts", "RubyPlugin()", "ViteRails()"
   else
     run "bin/rails tailwindcss:install"
+
+    if use_importmaps
+      run "bin/rails importmap:install"
+    end
 
     if use_shadcn
       generate "shadcn-ui accordion"
