@@ -163,6 +163,11 @@ if add_ruby_native
   gem "ruby_native"
 end
 
+use_standard_ruby = yes_default?("Do you want to add Standard Ruby (standardrb) for linting? (https://github.com/standardrb/standard)", default: true, use_defaults: use_defaults)
+if use_standard_ruby
+  gem "standard"
+end
+
 # Do not commit local env var files to version control as they may have sensitive credentials or dev-only config
 append_to_file ".gitignore", <<-EOS
 
@@ -546,6 +551,24 @@ EOS
     gsub_file "app/views/home/index.html.erb",
       "<h1>Home#index</h1>",
       ruby_native_heading.strip
+  end
+
+  if use_standard_ruby
+    create_file ".github/workflows/standard_ruby.yml", <<~YAML
+      name: Standard Ruby
+
+      on: [push]
+
+      jobs:
+        build:
+          runs-on: ubuntu-latest
+          permissions:
+            checks: write
+            contents: write
+          steps:
+          - name: Standard Ruby
+            uses: standardrb/standard-ruby-action@v1
+    YAML
   end
 
   git :init
