@@ -92,6 +92,8 @@ if sidekiq
   gem 'sidekiq'
 end
 
+gem 'after_commit_everywhere'
+
 # Clean config and type safe/validatable structs
 gem 'dry-configurable'
 gem 'dry-struct'

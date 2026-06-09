@@ -45,6 +45,7 @@ These are things I generally always use:
 - [AnnotateRb](https://github.com/drwl/annotaterb) to add comments to models about the table schema and to routes for quick reference
 - `bin/cli` runner for ease of adding a Thor-based CLI instead of rake (example below)
 - `bin/ci` runner for running tests with some options (great locally and for a CI server, example below)
+- [after_commit_everywhere](https://github.com/envek/after_commit_everywhere) Use ActiveRecord transactional callbacks outside of models, literally everywhere in your application.
 
 ## UI Layer Choices
 
