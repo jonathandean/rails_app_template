@@ -39,6 +39,7 @@ These are things I generally always use:
 - [tailwindcss](https://tailwindcss.com/) via the `--css=tailwind` flag to `rails new`
 - [dotenv](https://github.com/bkeepers/dotenv) for local environment variable configuration
 - [Brakeman](https://brakemanscanner.org/) for static code analysis to help detect potential security issues (included in the default Gemfile as of Rails 8.1+)
+- [strong_migrations](https://github.com/ankane/strong_migrations) Catch unsafe migrations during development
 - [bundler-audit](https://github.com/rubysec/bundler-audit) to ensure you keep your dependencies up to date
 - Setup for your service layer of plain Ruby objects in `app/services/` (example below)
 - `Dry::Struct` with types for immutable and validated Structs (example below)
