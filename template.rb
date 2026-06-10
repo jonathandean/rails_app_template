@@ -108,6 +108,8 @@ gem 'thor' # used by `bin/cli` and it's commands
 gem 'tty-option' # presenting options in an interactive CLI
 gem 'tty-progressbar'
 
+gem 'strong_migrations'
+
 add_auth0 = yes_default?("Do you want to include authentication via Auth0?", default: false, use_defaults: use_defaults)
 if add_auth0
   gem 'omniauth-auth0'
@@ -322,6 +324,8 @@ after_bundle do
     generate "rspec:install"
     insert_into_file "spec/rails_helper.rb", "\n    config.include FactoryBot::Syntax::Methods", after: "RSpec.configure do |config|"
   end
+
+  generate "strong_migrations:install"
 
   # Setup annotate
   generate "annotate_rb:install"
