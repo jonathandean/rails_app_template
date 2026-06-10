@@ -31,6 +31,7 @@ class TemplateHarness
     "shadcn-ui"                 => :shadcn,
     "Ruby Native"               => :ruby_native,
     "Overmind"                  => :overmind,
+    "Standard Ruby"             => :standard_ruby,
     # environment_config.rb
     "use Mise"                  => :mise,
     "Ruby version"              => :ruby_version,

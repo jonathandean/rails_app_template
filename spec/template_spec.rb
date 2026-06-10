@@ -17,6 +17,7 @@ RSpec.describe "template.rb" do
       shadcn: false,
       ruby_native: false,
       overmind: false,
+      standard_ruby: false,
       git_commit: false,
     }
   end
@@ -783,6 +784,38 @@ RSpec.describe "template.rb" do
   end
 
   # ---------------------------------------------------------------------------
+  # Standard Ruby option
+  # ---------------------------------------------------------------------------
+  describe "Standard Ruby option" do
+    context "when enabled" do
+      subject(:h) { run_template(standard_ruby: true) }
+
+      it "adds standard gem" do
+        expect(h).to have_gem("standard")
+      end
+
+      it "creates GitHub Actions workflow for Standard Ruby" do
+        workflow = h.actions_of(:create_file).find { |a| a.args.first == ".github/workflows/standard_ruby.yml" }
+        expect(workflow).not_to be_nil
+        expect(workflow.args[1]).to include("standardrb/standard-ruby-action@v1")
+      end
+    end
+
+    context "when disabled" do
+      subject(:h) { run_template(standard_ruby: false) }
+
+      it "does NOT add standard gem" do
+        expect(h).not_to have_gem("standard")
+      end
+
+      it "does NOT create Standard Ruby workflow" do
+        workflow = h.actions_of(:create_file).find { |a| a.args.first == ".github/workflows/standard_ruby.yml" }
+        expect(workflow).to be_nil
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Git commit option
   # ---------------------------------------------------------------------------
   describe "git commit option" do
@@ -1115,6 +1148,10 @@ RSpec.describe "template.rb" do
 
     it "adds Ruby Native" do
       expect(h).to have_gem("ruby_native")
+    end
+
+    it "adds Standard Ruby" do
+      expect(h).to have_gem("standard")
     end
 
     it "uses Overmind" do
