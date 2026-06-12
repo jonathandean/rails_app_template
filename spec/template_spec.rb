@@ -461,6 +461,11 @@ RSpec.describe "template.rb" do
         expect(h.has_generator?("migration enable_postgres_uuid_support")).to be true
       end
 
+      it "adds strong_migrations" do
+        expect(h).to have_gem("strong_migrations")
+        expect(h.has_generator?("strong_migrations:install")).to be true
+      end
+
       it "inserts implicit_order_column into ApplicationRecord" do
         ar_insert = h.inserted_files.find { |a| a.args.first.to_s.include?("application_record.rb") }
         expect(ar_insert).not_to be_nil
@@ -495,6 +500,11 @@ RSpec.describe "template.rb" do
 
       it "does NOT generate postgres migration" do
         expect(h.has_generator?("migration enable_postgres_uuid_support")).to be false
+      end
+
+      it "does NOT add strong_migrations" do
+        expect(h).not_to have_gem("strong_migrations")
+        expect(h.has_generator?("strong_migrations:install")).to be false
       end
     end
   end
@@ -1107,6 +1117,10 @@ RSpec.describe "template.rb" do
 
     it "uses SQLite (not PostgreSQL)" do
       expect(h.has_environment?("schema_format")).to be false
+    end
+
+    it "does NOT add strong_migrations (SQLite)" do
+      expect(h).not_to have_gem("strong_migrations")
     end
 
     it "adds shadcn-ui" do
