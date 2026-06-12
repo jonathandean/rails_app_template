@@ -19,6 +19,7 @@ class TemplateHarness
     "importmaps"                => :importmaps,
     "lograge"                   => :lograge,
     "Sidekiq and Redis"         => :sidekiq,
+    "Mission Control Jobs"      => :mission_control,
     "hashdiff"                  => :hashdiff,
     "authentication via Auth0"  => :auth0,
     "RSpec instead of minitest" => :rspec,

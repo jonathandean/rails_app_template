@@ -88,9 +88,14 @@ end
 
 sidekiq = yes_default?("Do you want to use Sidekiq and Redis for background jobs?", default: false, use_defaults: use_defaults)
 if sidekiq
-  # Backgroud jobs
+  # Background jobs
   gem 'sidekiq'
+  use_mission_control = yes_default?("Do you want to use Mission Control Jobs for the job management UI? (If no, Sidekiq Web will be used instead)", default: true, use_defaults: use_defaults)
+else
+  # Solid Queue is the default; automatically include Mission Control Jobs
+  use_mission_control = true
 end
+gem 'mission_control-jobs' if use_mission_control
 
 # Clean config and type safe/validatable structs
 gem 'dry-configurable'
@@ -188,22 +193,34 @@ copy_file "templates/cli/example_subcommand.rb", "app/cli/example_subcommand.rb"
 copy_file "templates/ci.rb", "bin/ci", force: true
 
 if sidekiq
-  # Configure sidekiq and sidekiq web UI
+  # Configure sidekiq
   copy_file 'templates/sidekiq.rb', "config/initializers/sidekiq.rb"
-  prepend_to_file "config/routes.rb", <<-EOS
+  # Use sidekiq for background jobs
+  environment 'config.active_job.queue_adapter = :sidekiq'
+
+  unless use_mission_control
+    # Sidekiq Web UI
+    prepend_to_file "config/routes.rb", <<-EOS
 
   require 'sidekiq/web'
-  EOS
-  route <<-EOS
+    EOS
+    route <<-EOS
     namespace :admin do
       mount Sidekiq::Web => '/jobs', constraints: lambda {|request|
         # TODO authorize this
         true
       }
     end
+    EOS
+  end
+end
+
+if use_mission_control
+  route <<-EOS
+    namespace :admin do
+      mount MissionControl::Jobs::Engine, at: "/jobs"
+    end
   EOS
-  # Use sidekiq for background jobs
-  environment 'config.active_job.queue_adapter = :sidekiq'
 end
 
 # A place for plain old Ruby objects
@@ -347,7 +364,7 @@ after_bundle do
       <h2 style="font-weight: 600; font-size: 1.5rem">Navigation</h2>
       <ul style="margin-top: 1rem">
         <li><%= link_to('Inertia.js example', '/inertia-example', style: 'text-decoration: underline') %></li>
-        #{sidekiq ? "<li><%= link_to('Sidekiq', '/admin/jobs', style: 'text-decoration: underline') %></li>" : ""}
+        <li><%= link_to('#{use_mission_control ? "Jobs" : "Sidekiq"}', '/admin/jobs', style: 'text-decoration: underline') %></li>
       </ul>
     </nav>
 EOS
@@ -357,7 +374,7 @@ EOS
       <h2 class="font-semibold text-xl">Navigation</h2>
       <ul class="mt-4">
         <li><%= link_to("Lookbook (ViewComponent Previews)", "/lookbook") %></li>
-        #{sidekiq ? "<li><%= link_to('Sidekiq', '/admin/jobs') %></li>" : ""}
+        <li><%= link_to('#{use_mission_control ? "Jobs" : "Sidekiq"}', '/admin/jobs') %></li>
       </ul>
     </nav>
 EOS
@@ -564,8 +581,9 @@ EOS
     git commit: "-a -m 'Initial commit'"
   end
 
+  jobs_ui_name = use_mission_control ? "Mission Control Jobs" : "Sidekiq Web"
   puts ""
-  puts "WARNING: add authorization checks to `config/routes.rb` for the sidekiq web UI at /jobs or remove it from the production environment."
+  puts "WARNING: add authorization checks to `config/routes.rb` for the #{jobs_ui_name} UI at /admin/jobs or remove it from the production environment."
   puts ""
   puts "Next steps:"
   if is_using_postgres

@@ -347,11 +347,48 @@ RSpec.describe "template.rb" do
   # Sidekiq option
   # ---------------------------------------------------------------------------
   describe "Sidekiq option" do
-    context "when enabled" do
-      subject(:h) { run_template(sidekiq: true) }
+    context "when enabled with Mission Control Jobs (default)" do
+      subject(:h) { run_template(sidekiq: true, mission_control: true) }
 
       it "adds sidekiq gem" do
         expect(h).to have_gem("sidekiq")
+      end
+
+      it "adds mission_control-jobs gem" do
+        expect(h).to have_gem("mission_control-jobs")
+      end
+
+      it "copies sidekiq initializer" do
+        expect(h.has_copied_file?("config/initializers/sidekiq.rb")).to be true
+      end
+
+      it "does NOT prepend sidekiq/web require to routes" do
+        prepended = h.actions_of(:prepend_to_file).find { |a| a.args.first == "config/routes.rb" && a.args[1].to_s.include?("sidekiq/web") }
+        expect(prepended).to be_nil
+      end
+
+      it "does NOT add Sidekiq::Web route" do
+        expect(h.has_route?("Sidekiq::Web")).to be false
+      end
+
+      it "adds Mission Control route" do
+        expect(h.has_route?("MissionControl::Jobs::Engine")).to be true
+      end
+
+      it "sets active_job queue_adapter to sidekiq" do
+        expect(h.has_environment?("queue_adapter = :sidekiq")).to be true
+      end
+    end
+
+    context "when enabled with Sidekiq Web" do
+      subject(:h) { run_template(sidekiq: true, mission_control: false) }
+
+      it "adds sidekiq gem" do
+        expect(h).to have_gem("sidekiq")
+      end
+
+      it "does NOT add mission_control-jobs gem" do
+        expect(h).not_to have_gem("mission_control-jobs")
       end
 
       it "copies sidekiq initializer" do
@@ -368,19 +405,31 @@ RSpec.describe "template.rb" do
         expect(h.has_route?("Sidekiq::Web")).to be true
       end
 
+      it "does NOT add Mission Control route" do
+        expect(h.has_route?("MissionControl::Jobs::Engine")).to be false
+      end
+
       it "sets active_job queue_adapter to sidekiq" do
         expect(h.has_environment?("queue_adapter = :sidekiq")).to be true
       end
     end
 
-    context "when disabled" do
+    context "when disabled (Solid Queue)" do
       subject(:h) { run_template(sidekiq: false) }
 
       it "does NOT add sidekiq gem" do
         expect(h).not_to have_gem("sidekiq")
       end
 
-      it "does NOT configure sidekiq" do
+      it "adds mission_control-jobs gem automatically" do
+        expect(h).to have_gem("mission_control-jobs")
+      end
+
+      it "adds Mission Control route" do
+        expect(h.has_route?("MissionControl::Jobs::Engine")).to be true
+      end
+
+      it "does NOT configure sidekiq queue adapter" do
         expect(h.has_environment?("queue_adapter = :sidekiq")).to be false
       end
     end
@@ -478,7 +527,7 @@ RSpec.describe "template.rb" do
     end
 
     context "when enabled with Sidekiq" do
-      subject(:h) { run_template(postgres: true, sidekiq: true) }
+      subject(:h) { run_template(postgres: true, sidekiq: true, mission_control: true) }
 
       it "uses the database-pg-sidekiq.yml.erb template for database.yml" do
         tmpl = h.templated_files.find { |f| f[:dest] == "config/database.yml" }
@@ -867,6 +916,7 @@ RSpec.describe "template.rb" do
         react: true,
         lograge: true,
         sidekiq: true,
+        mission_control: true,
         hashdiff: true,
         auth0: true,
         auth0_client_id: "cid",
@@ -881,7 +931,7 @@ RSpec.describe "template.rb" do
     end
 
     it "includes all expected gems" do
-      %w[inertia_rails vite_rails lograge sidekiq hashdiff omniauth-auth0 rspec-rails].each do |g|
+      %w[inertia_rails vite_rails lograge sidekiq mission_control-jobs hashdiff omniauth-auth0 rspec-rails].each do |g|
         expect(h).to have_gem(g), "expected gem #{g} to be present"
       end
     end
@@ -939,6 +989,7 @@ RSpec.describe "template.rb" do
     it "adds only unconditional + hotwire gems" do
       expect(h).to have_gem("view_component")
       expect(h).to have_gem("dry-struct")
+      expect(h).to have_gem("mission_control-jobs")
       expect(h).not_to have_gem("lograge")
       expect(h).not_to have_gem("sidekiq")
       expect(h).not_to have_gem("hashdiff")
@@ -997,8 +1048,32 @@ RSpec.describe "template.rb" do
       end
     end
 
-    context "with Sidekiq enabled (React)" do
-      subject(:h) { run_template(react: true, sidekiq: true) }
+    context "with Solid Queue (React)" do
+      subject(:h) { run_template(react: true, sidekiq: false) }
+
+      it "includes Jobs link in navigation (Mission Control)" do
+        nav_insert = h.inserted_files.find do |a|
+          a.args.first.to_s.include?("home/index") &&
+            a.args[1].to_s.include?("Jobs")
+        end
+        expect(nav_insert).not_to be_nil
+      end
+    end
+
+    context "with Sidekiq + Mission Control (React)" do
+      subject(:h) { run_template(react: true, sidekiq: true, mission_control: true) }
+
+      it "includes Jobs link in navigation" do
+        nav_insert = h.inserted_files.find do |a|
+          a.args.first.to_s.include?("home/index") &&
+            a.args[1].to_s.include?("Jobs")
+        end
+        expect(nav_insert).not_to be_nil
+      end
+    end
+
+    context "with Sidekiq + Sidekiq Web (React)" do
+      subject(:h) { run_template(react: true, sidekiq: true, mission_control: false) }
 
       it "includes Sidekiq link in navigation" do
         nav_insert = h.inserted_files.find do |a|
@@ -1009,8 +1084,20 @@ RSpec.describe "template.rb" do
       end
     end
 
-    context "with Sidekiq enabled (Hotwire)" do
-      subject(:h) { run_template(react: false, importmaps: true, sidekiq: true) }
+    context "with Solid Queue (Hotwire)" do
+      subject(:h) { run_template(react: false, importmaps: true, sidekiq: false) }
+
+      it "includes Jobs link in navigation (Mission Control)" do
+        nav_insert = h.inserted_files.find do |a|
+          a.args.first.to_s.include?("home/index") &&
+            a.args[1].to_s.include?("Jobs")
+        end
+        expect(nav_insert).not_to be_nil
+      end
+    end
+
+    context "with Sidekiq + Sidekiq Web (Hotwire)" do
+      subject(:h) { run_template(react: false, importmaps: true, sidekiq: true, mission_control: false) }
 
       it "includes Sidekiq link in navigation" do
         nav_insert = h.inserted_files.find do |a|
@@ -1101,6 +1188,10 @@ RSpec.describe "template.rb" do
 
     it "does NOT add Sidekiq (uses Solid Queue)" do
       expect(h).not_to have_gem("sidekiq")
+    end
+
+    it "adds Mission Control Jobs automatically (Solid Queue default)" do
+      expect(h).to have_gem("mission_control-jobs")
     end
 
     it "does NOT add hashdiff" do

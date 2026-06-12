@@ -99,7 +99,7 @@ RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ?
     let(:rails_flags) { "--css=tailwind --skip-system-test" }
 
     include_examples "a generated app",
-      gemfile_includes: %w[view_component lookbook rspec-rails dotenv-rails],
+      gemfile_includes: %w[view_component lookbook rspec-rails dotenv-rails mission_control-jobs],
       gemfile_excludes: %w[inertia_rails vite_rails sidekiq omniauth-auth0],
       files_present: ["app/components/.keep", "spec/components/previews/.keep", "bin/cli", "bin/ci"]
   end
@@ -116,7 +116,7 @@ RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ?
     let(:rails_flags) { "--css=tailwind --skip-system-test --skip-hotwire --skip-jbuilder" }
 
     include_examples "a generated app",
-      gemfile_includes: %w[inertia_rails vite_rails dotenv-rails],
+      gemfile_includes: %w[inertia_rails vite_rails dotenv-rails mission_control-jobs],
       gemfile_excludes: %w[view_component lookbook sidekiq omniauth-auth0],
       files_present: ["bin/cli", "bin/ci", "vite.config.ts"]
   end
@@ -128,15 +128,15 @@ RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ?
     before { skip "requires pg_config (libpq) to build the pg gem" unless pg_available? }
 
     # use_defaults? n | react? n | importmaps? y | shadcn? n | lograge? y |
-    # sidekiq? y | hashdiff? y | auth0? y | rspec? y | postgres? y |
-    # ruby_native? n | overmind? n | <cid> | <secret> | <domain> | guest? y |
-    # commit? n
+    # sidekiq? y | mission_control? y | hashdiff? y | auth0? y | rspec? y |
+    # postgres? y | ruby_native? n | overmind? n | <cid> | <secret> |
+    # <domain> | guest? y | commit? n
     let(:app_name) { "hotwire_full" }
-    let(:answers) { %w[n n y n y y y y y y n n test-cid test-csec test.auth0.com y n] }
+    let(:answers) { %w[n n y n y y y y y y y n n test-cid test-csec test.auth0.com y n] }
     let(:rails_flags) { "--database=postgresql --css=tailwind --skip-system-test" }
 
     include_examples "a generated app",
-      gemfile_includes: %w[view_component sidekiq omniauth-auth0 lograge hashdiff rspec-rails],
+      gemfile_includes: %w[view_component sidekiq mission_control-jobs omniauth-auth0 lograge hashdiff rspec-rails],
       gemfile_excludes: %w[inertia_rails vite_rails],
       files_present: ["config/initializers/sidekiq.rb", "app/models/user.rb", "bin/ci"]
   end
@@ -155,7 +155,7 @@ RSpec.describe "template.rb integration", skip: (ENV["RUN_INTEGRATION"] != "1" ?
     let(:rails_flags) { "--database=postgresql --css=tailwind --skip-system-test --skip-hotwire --skip-jbuilder" }
 
     include_examples "a generated app",
-      gemfile_includes: %w[inertia_rails vite_rails rspec-rails],
+      gemfile_includes: %w[inertia_rails vite_rails rspec-rails mission_control-jobs],
       gemfile_excludes: %w[view_component sidekiq omniauth-auth0],
       files_present: ["bin/cli", "bin/ci", "vite.config.ts"]
   end
