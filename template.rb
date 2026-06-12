@@ -108,8 +108,6 @@ gem 'thor' # used by `bin/cli` and it's commands
 gem 'tty-option' # presenting options in an interactive CLI
 gem 'tty-progressbar'
 
-gem 'strong_migrations'
-
 add_auth0 = yes_default?("Do you want to include authentication via Auth0?", default: false, use_defaults: use_defaults)
 if add_auth0
   gem 'omniauth-auth0'
@@ -151,6 +149,11 @@ unless use_react
 end
 
 is_using_postgres = yes_default?("Are you using PostgreSQL as your database?", default: false, use_defaults: use_defaults)
+
+# strong_migrations is only useful for PostgreSQL and MySQL, not SQLite
+if is_using_postgres
+  gem 'strong_migrations'
+end
 
 if is_using_postgres && sidekiq
   # Use a version of `config/database.yml` with ENV var support built in for anyone who wants to override defaults locally
@@ -325,7 +328,9 @@ after_bundle do
     insert_into_file "spec/rails_helper.rb", "\n    config.include FactoryBot::Syntax::Methods", after: "RSpec.configure do |config|"
   end
 
-  generate "strong_migrations:install"
+  if is_using_postgres
+    generate "strong_migrations:install"
+  end
 
   # Setup annotate
   generate "annotate_rb:install"
